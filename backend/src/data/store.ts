@@ -22,7 +22,7 @@ class DataStore {
   weighings: Weighing[] = [];
   qualityChecks: QualityCheck[] = [];
   auditLogs: AuditLog[] = [];
-  analytics: { registrations: AnalyticsDataPoint[]; bookings: AnalyticsDataPoint[]; waitTimes: AnalyticsDataPoint[]; procurements: AnalyticsDataPoint[]; payments: AnalyticsDataPoint[]; } = { registrations: [], bookings: [], waitTimes: [], procurements: [], payments: [] };
+  analytics: Record<string, AnalyticsDataPoint[]> = {};
 
   constructor() {
     this.users = [...seedUsers, ...seedFarmers.map(f => ({ ...f } as User))];

@@ -1,0 +1,99 @@
+import { Router } from 'express';
+import store from '../data/store';
+import { optionalAuth } from '../middleware/auth';
+import { asyncHandler } from '../middleware/errorHandler';
+import { KPIData, ProcurementStatus, PaymentStatus, CongestionLevel } from '../../../shared/types';
+
+const router = Router();
+
+// GET /api/analytics/kpis
+router.get('/kpis', optionalAuth, asyncHandler(async (_req, res) => {
+  const kpis: KPIData = {
+    farmersRegistered: store.getAllFarmers().length,
+    todaysBookings: store.getTodaysBookings(),
+    activeQueue: store.getActiveQueueCount(),
+    avgWaitTime: store.getAvgWaitTime(),
+    completedProcurement: store.getCompletedToday().length,
+    paymentsProcessed: store.getAllPayments().filter(p => p.status === PaymentStatus.COMPLETED).length,
+  };
+  return res.json({ success: true, data: kpis });
+}));
+
+// GET /api/analytics/charts/:type
+router.get('/charts/:type', optionalAuth, asyncHandler(async (req, res) => {
+  const { type } = req.params;
+  const { period = '7d', centreId } = req.query;
+
+  let days = 7;
+  if (period === 'today') days = 1;
+  else if (period === '30d') days = 30;
+
+  const analytics = store.analytics;
+  let data: { date: string; value: number }[] = [];
+
+  switch (type) {
+    case 'registrations':
+      data = analytics.registrations?.slice(-days) || generateMockChart(days, 5, 15);
+      break;
+    case 'bookings':
+      data = analytics.bookings?.slice(-days) || generateMockChart(days, 10, 30);
+      break;
+    case 'waitTime':
+      data = analytics.waitTimes?.slice(-days) || generateMockChart(days, 10, 45);
+      break;
+    case 'queueLength':
+      data = generateMockChart(days, 5, 25);
+      break;
+    case 'utilization':
+      data = generateMockChart(days, 40, 90);
+      break;
+    case 'procurement':
+      data = analytics.procurements?.slice(-days) || generateMockChart(days, 8, 20);
+      break;
+    case 'payments':
+      data = analytics.payments?.slice(-days) || generateMockChart(days, 5, 18);
+      break;
+    default:
+      data = generateMockChart(days, 0, 50);
+  }
+
+  return res.json({ success: true, data });
+}));
+
+// GET /api/analytics/centre-comparison
+router.get('/centre-comparison', optionalAuth, asyncHandler(async (_req, res) => {
+  const centres = store.getAllCentres();
+  const comparison = centres.map(c => {
+    const queue = store.getQueueByCentre(c.id);
+    const procs = store.getProcurementsByCentre(c.id);
+    const today = new Date().toISOString().split('T')[0];
+    const completedToday = procs.filter(p => p.status === ProcurementStatus.COMPLETED && p.completedAt?.startsWith(today)).length;
+    const utilization = Math.min(100, Math.round((queue.length / Math.max(c.capacity * 0.1, 1)) * 100));
+    let congestionLevel: CongestionLevel = CongestionLevel.GREEN;
+    if (utilization > 80) congestionLevel = CongestionLevel.RED;
+    else if (utilization > 50) congestionLevel = CongestionLevel.YELLOW;
+    return {
+      centreId: c.id, centreName: c.name,
+      queueLength: queue.length,
+      avgWaitTime: queue.length > 0 ? Math.round(queue.length * 15 / Math.max(c.activeBays, 1)) : 0,
+      utilization, activeFarmers: queue.length,
+      completedToday, congestionLevel,
+    };
+  });
+  return res.json({ success: true, data: comparison });
+}));
+
+function generateMockChart(days: number, min: number, max: number) {
+  const data = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    data.push({
+      date: d.toISOString().split('T')[0],
+      value: Math.floor(Math.random() * (max - min + 1)) + min,
+    });
+  }
+  return data;
+}
+
+export default router;

@@ -26,6 +26,7 @@ import demoRoutes from './routes/demo';
 import aiRoutes from './routes/ai';
 import officerRoutes from './routes/officer';
 import healthRoutes from './routes/health';
+import swaggerRouter from './docs/swagger';
 
 const app = express();
 const PORT = config.PORT;
@@ -80,7 +81,10 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-// 6. Application Routes
+// 6. Interactive API Documentation (OpenAPI 3.0 & Swagger UI)
+app.use('/api/docs', swaggerRouter);
+
+// 7. Application Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/farmers', farmerRoutes);
 app.use('/api/centres', centreRoutes);

@@ -10,7 +10,17 @@ node_modules/
 
 backend/dist/
 frontend/dist/
+dist/
 coverage/
 **/coverage/
 pgdata/
 **/pgdata/
+
+# Logs & Test artifacts
+*.log
+**/*.log
+scratch/*.png
+scratch/*.pdf
+scratch/screenshots/
+scratch/audit_screenshots/
+scratch/phase11_screenshots/

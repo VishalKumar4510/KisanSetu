@@ -8,9 +8,14 @@ import { startLocalPostgresIfNeeded } from './dbServer';
 const connectionString =
   process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:5432/kisansetu?schema=public';
 
+const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST;
+const poolMax = process.env.DATABASE_MAX_POOL
+  ? parseInt(process.env.DATABASE_MAX_POOL, 10)
+  : (isTest ? 1 : 10);
+
 const pool = new Pool({
   connectionString,
-  max: 10,
+  max: poolMax,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });

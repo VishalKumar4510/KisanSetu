@@ -2,6 +2,7 @@ import {
   User, Farmer, Centre, Slot, Token, Produce, Procurement,
   Payment, Notification, Weighing, QualityCheck, AuditLog,
   ProcurementStatus, PaymentStatus, CongestionLevel, AnalyticsDataPoint,
+  ScaleEquipment, OfficerAlert, ScaleStatus,
 } from '../../../shared/types';
 import {
   seedUsers, seedFarmers, seedCentres, seedSlots, seedTokens,
@@ -23,8 +24,15 @@ class DataStore {
   qualityChecks: QualityCheck[] = [];
   auditLogs: AuditLog[] = [];
   analytics: Record<string, AnalyticsDataPoint[]> = {};
+  scales: ScaleEquipment[] = [];
+  officerAlerts: OfficerAlert[] = [];
+  pausedCentres: Set<string> = new Set();
 
   constructor() {
+    this.reset();
+  }
+
+  reset(): void {
     this.users = [...seedUsers, ...seedFarmers.map(f => ({ ...f } as User))];
     this.farmers = [...seedFarmers];
     this.centres = [...seedCentres];
@@ -38,6 +46,71 @@ class DataStore {
     this.qualityChecks = [...seedQualityChecks];
     this.auditLogs = [...seedAuditLogs];
     this.analytics = { ...seedAnalytics };
+    this.pausedCentres = new Set();
+
+    // Seed realistic scales for centers
+    const centreIds = this.centres.map(c => c.id);
+    const primaryCentreId = centreIds[0] || 'centre-1';
+    this.scales = [
+      {
+        id: 'scale-wb-01',
+        centreId: primaryCentreId,
+        name: 'Weighbridge #01',
+        type: 'WEIGHBRIDGE',
+        capacityKg: 50000,
+        status: 'ONLINE',
+        lastCalibrationDate: '2026-09-01',
+      },
+      {
+        id: 'scale-wb-02',
+        centreId: primaryCentreId,
+        name: 'Weighbridge #02',
+        type: 'WEIGHBRIDGE',
+        capacityKg: 50000,
+        status: 'ONLINE',
+        lastCalibrationDate: '2026-09-05',
+      },
+      {
+        id: 'scale-plt-03',
+        centreId: primaryCentreId,
+        name: 'Platform Scale #03',
+        type: 'PLATFORM_SCALE',
+        capacityKg: 3000,
+        status: 'ONLINE',
+        lastCalibrationDate: '2026-09-10',
+      },
+    ];
+
+    // Seed realistic operational alerts
+    this.officerAlerts = [
+      {
+        id: 'alert-01',
+        centreId: primaryCentreId,
+        severity: 'WARNING',
+        title: 'Moisture Inspection Flag',
+        message: 'Recent arrivals from Sector 4 showing elevated moisture readings (>12.5%). Ensure rigorous sampling.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+        read: false,
+      },
+      {
+        id: 'alert-02',
+        centreId: primaryCentreId,
+        severity: 'INFO',
+        title: 'Scale Calibration Verified',
+        message: 'Weighbridge #01 and #02 daily zero-load calibration verified by Legal Metrology Dept.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+        read: true,
+      },
+      {
+        id: 'alert-03',
+        centreId: primaryCentreId,
+        severity: 'INFO',
+        title: 'Demo Settlement Batch Reconciliation',
+        message: 'Previous procurement demo batch of 24 lots settled in simulated banking gateway.',
+        timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+        read: true,
+      },
+    ];
   }
 
   // ======= Users =======
@@ -53,17 +126,23 @@ class DataStore {
 
   // ======= Farmers =======
   getAllFarmers(): Farmer[] { return this.farmers; }
-  getFarmerById(id: string): Farmer | undefined { return this.farmers.find(f => f.id === id); }
-  getFarmerByFarmerId(farmerId: string): Farmer | undefined { return this.farmers.find(f => f.farmerId === farmerId); }
+  getFarmerById(id: string): Farmer | undefined { return this.farmers.find(f => f.id === id || f.farmerId === id); }
+  getFarmerByFarmerId(farmerId: string): Farmer | undefined { return this.farmers.find(f => f.farmerId === farmerId || f.id === farmerId); }
   getFarmerByPhone(phone: string): Farmer | undefined { return this.farmers.find(f => f.phone === phone); }
   createFarmer(farmer: Farmer): Farmer { this.farmers.push(farmer); this.users.push(farmer as unknown as User); return farmer; }
   updateFarmer(id: string, data: Partial<Farmer>): Farmer | undefined {
-    const idx = this.farmers.findIndex(f => f.id === id);
+    const idx = this.farmers.findIndex(f => f.id === id || f.farmerId === id);
     if (idx === -1) return undefined;
     this.farmers[idx] = { ...this.farmers[idx], ...data };
     const uIdx = this.users.findIndex(u => u.id === id);
     if (uIdx !== -1) this.users[uIdx] = { ...this.users[uIdx], ...data };
     return this.farmers[idx];
+  }
+
+  private resolveFarmerInternalId(farmerId: string): string {
+    if (!farmerId) return farmerId;
+    const f = this.farmers.find(farmer => farmer.id === farmerId || farmer.farmerId === farmerId);
+    return f ? f.id : farmerId;
   }
 
   // ======= Centres =======
@@ -102,9 +181,13 @@ class DataStore {
   // ======= Tokens =======
   getAllTokens(): Token[] { return this.tokens; }
   getTokenById(id: string): Token | undefined { return this.tokens.find(t => t.id === id); }
-  getTokenByFarmer(farmerId: string): Token[] { return this.tokens.filter(t => t.farmerId === farmerId); }
+  getTokenByFarmer(farmerId: string): Token[] {
+    const id = this.resolveFarmerInternalId(farmerId);
+    return this.tokens.filter(t => t.farmerId === id || t.farmerId === farmerId);
+  }
   getActiveTokenByFarmer(farmerId: string): Token | undefined {
-    return this.tokens.find(t => t.farmerId === farmerId && t.status === 'ACTIVE');
+    const id = this.resolveFarmerInternalId(farmerId);
+    return this.tokens.find(t => (t.farmerId === id || t.farmerId === farmerId) && t.status === 'ACTIVE');
   }
   getQueueByCentre(centreId: string): Token[] {
     return this.tokens
@@ -122,15 +205,22 @@ class DataStore {
   // ======= Produce =======
   getAllProduce(): Produce[] { return this.produce; }
   getProduceById(id: string): Produce | undefined { return this.produce.find(p => p.id === id); }
-  getProduceByFarmer(farmerId: string): Produce[] { return this.produce.filter(p => p.farmerId === farmerId); }
+  getProduceByFarmer(farmerId: string): Produce[] {
+    const id = this.resolveFarmerInternalId(farmerId);
+    return this.produce.filter(p => p.farmerId === id || p.farmerId === farmerId);
+  }
   createProduce(prod: Produce): Produce { this.produce.push(prod); return prod; }
 
   // ======= Procurements =======
   getAllProcurements(): Procurement[] { return this.procurements; }
   getProcurementById(id: string): Procurement | undefined { return this.procurements.find(p => p.id === id); }
-  getProcurementByFarmer(farmerId: string): Procurement[] { return this.procurements.filter(p => p.farmerId === farmerId); }
+  getProcurementByFarmer(farmerId: string): Procurement[] {
+    const id = this.resolveFarmerInternalId(farmerId);
+    return this.procurements.filter(p => p.farmerId === id || p.farmerId === farmerId);
+  }
   getActiveProcurement(farmerId: string): Procurement | undefined {
-    return this.procurements.find(p => p.farmerId === farmerId && p.status !== ProcurementStatus.COMPLETED);
+    const id = this.resolveFarmerInternalId(farmerId);
+    return this.procurements.find(p => (p.farmerId === id || p.farmerId === farmerId) && p.status !== ProcurementStatus.COMPLETED);
   }
   getActiveProcurements(): Procurement[] {
     return this.procurements.filter(p => p.status !== ProcurementStatus.COMPLETED);
@@ -155,12 +245,16 @@ class DataStore {
   // ======= Payments =======
   getAllPayments(): Payment[] { return this.payments; }
   getPaymentById(id: string): Payment | undefined { return this.payments.find(p => p.id === id); }
-  getPaymentsByFarmer(farmerId: string): Payment[] { return this.payments.filter(p => p.farmerId === farmerId); }
+  getPaymentsByFarmer(farmerId: string): Payment[] {
+    const id = this.resolveFarmerInternalId(farmerId);
+    return this.payments.filter(p => p.farmerId === id || p.farmerId === farmerId);
+  }
   getPaymentByProcurement(procurementId: string): Payment | undefined {
     return this.payments.find(p => p.procurementId === procurementId);
   }
   getCurrentPayment(farmerId: string): Payment | undefined {
-    return this.payments.filter(p => p.farmerId === farmerId).sort((a, b) =>
+    const id = this.resolveFarmerInternalId(farmerId);
+    return this.payments.filter(p => p.farmerId === id || p.farmerId === farmerId).sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )[0];
   }
@@ -195,18 +289,47 @@ class DataStore {
 
   // ======= Weighings =======
   createWeighing(w: Weighing): Weighing { this.weighings.push(w); return w; }
+  upsertWeighing(w: Weighing): Weighing {
+    const idx = this.weighings.findIndex(item => item.procurementId === w.procurementId);
+    if (idx !== -1) {
+      this.weighings[idx] = { ...this.weighings[idx], ...w };
+      return this.weighings[idx];
+    }
+    this.weighings.push(w);
+    return w;
+  }
   getWeighingByProcurement(procurementId: string): Weighing | undefined {
     return this.weighings.find(w => w.procurementId === procurementId);
   }
 
   // ======= Quality Checks =======
   createQualityCheck(qc: QualityCheck): QualityCheck { this.qualityChecks.push(qc); return qc; }
+  upsertQualityCheck(qc: QualityCheck): QualityCheck {
+    const idx = this.qualityChecks.findIndex(item => item.procurementId === qc.procurementId);
+    if (idx !== -1) {
+      this.qualityChecks[idx] = { ...this.qualityChecks[idx], ...qc };
+      return this.qualityChecks[idx];
+    }
+    this.qualityChecks.push(qc);
+    return qc;
+  }
   getQualityCheckByProcurement(procurementId: string): QualityCheck | undefined {
     return this.qualityChecks.find(qc => qc.procurementId === procurementId);
   }
 
-  // ======= Audit Logs =======
+  // ======= Audit Logs & Timeline =======
   createAuditLog(log: AuditLog): AuditLog { this.auditLogs.push(log); return log; }
+  addTimelineEvent(procurementId: string, event: { stage: string; label: string; timestamp: string; details?: string; actor?: string }): void {
+    const proc = this.getProcurementById(procurementId);
+    if (proc) {
+      if (!proc.timeline) proc.timeline = [];
+      proc.timeline.push(event);
+    }
+  }
+  getPaymentsByCentre(centreId: string): Payment[] {
+    const procIds = new Set(this.procurements.filter(p => p.centreId === centreId).map(p => p.id));
+    return this.payments.filter(p => procIds.has(p.procurementId));
+  }
 
   // ======= Analytics Helpers =======
   getTodaysBookings(): number {
@@ -220,10 +343,62 @@ class DataStore {
     const activeTokens = this.tokens.filter(t => t.status === 'ACTIVE');
     if (activeTokens.length === 0) return 0;
     const totalMinutes = activeTokens.reduce((sum, t) => {
-      const mins = parseInt(t.estimatedTime) || 15;
+      let mins = 15;
+      if (t.estimatedTime) {
+        if (t.estimatedTime.includes('T') || t.estimatedTime.includes('-')) {
+          const diffMs = new Date(t.estimatedTime).getTime() - Date.now();
+          mins = Math.max(5, Math.round(diffMs / 60000));
+          if (isNaN(mins) || mins > 120) mins = 18;
+        } else {
+          mins = parseInt(t.estimatedTime, 10);
+          if (isNaN(mins) || mins > 300) mins = 18;
+        }
+      }
       return sum + mins;
     }, 0);
     return Math.round(totalMinutes / activeTokens.length);
+  }
+
+  // ======= Scales =======
+  getScalesByCentre(centreId?: string): ScaleEquipment[] {
+    return this.scales.filter(s => !centreId || s.centreId === centreId);
+  }
+  getScaleById(id: string): ScaleEquipment | undefined {
+    return this.scales.find(s => s.id === id);
+  }
+  updateScaleStatus(id: string, status: ScaleStatus): ScaleEquipment | undefined {
+    const scale = this.scales.find(s => s.id === id);
+    if (scale) scale.status = status;
+    return scale;
+  }
+
+  // ======= Officer Alerts =======
+  getAlertsByCentre(centreId?: string): OfficerAlert[] {
+    return this.officerAlerts
+      .filter(a => !centreId || a.centreId === centreId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+  markAlertRead(id: string): OfficerAlert | undefined {
+    const alert = this.officerAlerts.find(a => a.id === id);
+    if (alert) alert.read = true;
+    return alert;
+  }
+  addOfficerAlert(alert: OfficerAlert): OfficerAlert {
+    this.officerAlerts.unshift(alert);
+    return alert;
+  }
+
+  // ======= Queue Paused =======
+  isQueuePaused(centreId: string): boolean {
+    return this.pausedCentres.has(centreId);
+  }
+  setQueuePaused(centreId: string, paused: boolean): boolean {
+    if (paused) {
+      this.pausedCentres.add(centreId);
+    } else {
+      this.pausedCentres.delete(centreId);
+    }
+    return paused;
   }
 }
 

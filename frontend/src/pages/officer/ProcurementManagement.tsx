@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../../context/LanguageContext';
 import { procurementAPI } from '../../services/api';
-import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Scale, FlaskConical, CreditCard } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Scale, FlaskConical, CreditCard, Package } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default function ProcurementManagement() {
-  const { t } = useLanguage();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [procs, setProcs] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,14 @@ export default function ProcurementManagement() {
   };
 
   const handleTransition = async (id: string, status: string, data?: any) => {
-    try { await procurementAPI.updateStatus(id, { status, ...data }); fetchProcs(); setExpanded(null); } catch (e: any) { alert(e.response?.data?.error || 'Transition failed'); }
+    try { 
+      await procurementAPI.updateStatus(id, { status, ...data }); 
+      toast.success('Status Updated', `Procurement moved to ${status.replace(/_/g, ' ')}`);
+      fetchProcs(); 
+      setExpanded(null); 
+    } catch (e: any) { 
+      toast.error('Transition Failed', e.response?.data?.error || 'Transition failed'); 
+    }
   };
 
   const getNextAction = (status: string, procId: string) => {
@@ -37,16 +46,46 @@ export default function ProcurementManagement() {
     return actions[status];
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600" /></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-green-700 text-white px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/officer')}><ArrowLeft className="w-5 h-5" /></button>
+            <h1 className="text-xl font-bold">Procurement Management</h1>
+          </div>
+        </header>
+        <div className="max-w-5xl mx-auto px-6 py-6 space-y-4">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-700 text-white px-6 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/officer')}><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">{t('procurementManagement')}</h1>
+      <header className="bg-green-700 text-white px-6 py-4 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate('/officer')}><ArrowLeft className="w-5 h-5" /></button>
+          <h1 className="text-xl font-bold">Procurement Management</h1>
+        </div>
+        <button
+          onClick={() => navigate('/officer')}
+          className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+        >
+          Officer Dashboard & Workbench →
+        </button>
       </header>
       <div className="max-w-5xl mx-auto px-6 py-6 space-y-3">
-        {procs.filter(p => p.status !== 'COMPLETED').length === 0 && <p className="text-center py-12 text-gray-400">{t('noData')}</p>}
+        {procs.filter(p => p.status !== 'COMPLETED').length === 0 && (
+          <EmptyState
+            icon={<Package className="w-8 h-8 text-slate-400" />}
+            title="No active procurements found"
+            description="When booked lots arrive at the procurement centre, they will appear here for processing."
+          />
+        )}
         {procs.filter(p => p.status !== 'COMPLETED').map(proc => {
           const action = getNextAction(proc.status, proc.id);
           const isExpanded = expanded === proc.id;
@@ -59,7 +98,7 @@ export default function ProcurementManagement() {
                   <span className="text-sm text-gray-500">{proc.produce?.type} - {proc.produce?.quantity} {proc.produce?.unit}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="badge bg-blue-100 text-blue-800">{proc.status.replace(/_/g, ' ')}</span>
+                  <span className="badge bg-blue-100 text-blue-800">{(proc.status || 'BOOKED').replace(/_/g, ' ')}</span>
                   {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </div>
               </div>

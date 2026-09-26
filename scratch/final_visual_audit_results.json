@@ -1,0 +1,721 @@
+{
+  "totalCheckedViews": 18,
+  "totalViewportChecks": 144,
+  "totalIssuesFound": 27,
+  "cleanPagesCount": 9,
+  "cleanPages": [
+    "[AUTH] Login Screen",
+    "[FARMER] Farmer Dashboard",
+    "[FARMER] Centre Selection",
+    "[FARMER] Slot Booking",
+    "[FARMER] Digital Token",
+    "[FARMER] Live Queue",
+    "[FARMER] Procurement Progress",
+    "[FARMER] Payment Status",
+    "[OFFICER] Queue Management"
+  ],
+  "pagesWithIssuesCount": 9,
+  "pagesWithIssues": [
+    "[OFFICER] Officer Dashboard & Console",
+    "[OFFICER] Procurement Workbench",
+    "[OFFICER] Payment Review Workbench Step",
+    "[OFFICER] Receipt & Settlement View",
+    "[ADMIN] Admin Command Centre Dashboard",
+    "[ADMIN] Centre Monitoring",
+    "[ADMIN] Payment Monitoring",
+    "[ADMIN] State Analytics",
+    "[ADMIN] Executive Reports"
+  ],
+  "detailedFindings": [
+    {
+      "flow": "OFFICER",
+      "page": "Officer Dashboard & Console",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "10 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Officer Dashboard & Console",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "11 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\officer_officer_dashboard___console_390x844.png"
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Officer Dashboard & Console",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "11 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Procurement Workbench",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Icon Button",
+              "width": 20,
+              "height": 20
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Procurement Workbench",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Icon Button",
+              "width": 20,
+              "height": 20
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\officer_procurement_workbench_390x844.png"
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Procurement Workbench",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Icon Button",
+              "width": 20,
+              "height": 20
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Payment Review Workbench Step",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "10 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Payment Review Workbench Step",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "11 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\officer_payment_review_workbench_step_390x844.png"
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Payment Review Workbench Step",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "11 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Receipt & Settlement View",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "10 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Receipt & Settlement View",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "11 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\officer_receipt___settlement_view_390x844.png"
+    },
+    {
+      "flow": "OFFICER",
+      "page": "Receipt & Settlement View",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "11 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Secondary Metrics",
+              "width": 119,
+              "height": 16
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            },
+            {
+              "label": "History",
+              "width": 63,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Admin Command Centre Dashboard",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "8 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            },
+            {
+              "label": "1x",
+              "width": 28,
+              "height": 24
+            },
+            {
+              "label": "2x",
+              "width": 28,
+              "height": 24
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Admin Command Centre Dashboard",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "8 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            },
+            {
+              "label": "1x",
+              "width": 28,
+              "height": 24
+            },
+            {
+              "label": "2x",
+              "width": 28,
+              "height": 24
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\admin_admin_command_centre_dashboard_390x844.png"
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Admin Command Centre Dashboard",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "8 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            },
+            {
+              "label": "1x",
+              "width": 28,
+              "height": 24
+            },
+            {
+              "label": "2x",
+              "width": 28,
+              "height": 24
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Centre Monitoring",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Centre Monitoring",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\admin_centre_monitoring_390x844.png"
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Centre Monitoring",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Payment Monitoring",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "6 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            },
+            {
+              "label": "Disburse",
+              "width": 72,
+              "height": 24
+            },
+            {
+              "label": "Disburse",
+              "width": 72,
+              "height": 24
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Payment Monitoring",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "6 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            },
+            {
+              "label": "Disburse",
+              "width": 72,
+              "height": 24
+            },
+            {
+              "label": "Disburse",
+              "width": 72,
+              "height": 24
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\admin_payment_monitoring_390x844.png"
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Payment Monitoring",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "6 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            },
+            {
+              "label": "Disburse",
+              "width": 72,
+              "height": 24
+            },
+            {
+              "label": "Disburse",
+              "width": 72,
+              "height": 24
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "State Analytics",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "State Analytics",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\admin_state_analytics_390x844.png"
+    },
+    {
+      "flow": "ADMIN",
+      "page": "State Analytics",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Executive Reports",
+      "viewport": "360x800",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Executive Reports",
+      "viewport": "390x844",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": "C:\\Users\\yesvi\\OneDrive\\Desktop\\SIH\\scratch\\audit_screenshots\\admin_executive_reports_390x844.png"
+    },
+    {
+      "flow": "ADMIN",
+      "page": "Executive Reports",
+      "viewport": "430x932",
+      "issues": [
+        {
+          "type": "TOUCH_TARGET_COMPACT",
+          "severity": "LOW",
+          "problem": "1 interactive elements have tap bounds under 28px (compact console density)",
+          "elements": [
+            {
+              "label": "Demo",
+              "width": 72,
+              "height": 26
+            }
+          ]
+        }
+      ],
+      "screenshot": null
+    }
+  ]
+}

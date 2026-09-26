@@ -2,6 +2,8 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { ToastProvider } from './components/ui/toast';
+import { FarmerLayout, OfficerLayout, AdminLayout } from './components/layout';
 
 // Lazy-loaded pages
 const Login = lazy(() => import('./pages/Login'));
@@ -51,30 +53,30 @@ function AppRoutes() {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Farmer Routes */}
-        <Route path="/farmer" element={<ProtectedRoute roles={['FARMER']}><FarmerDashboard /></ProtectedRoute>} />
-        <Route path="/farmer/produce" element={<ProtectedRoute roles={['FARMER']}><ProduceRegistration /></ProtectedRoute>} />
-        <Route path="/farmer/centres" element={<ProtectedRoute roles={['FARMER']}><CentreSelection /></ProtectedRoute>} />
-        <Route path="/farmer/slots" element={<ProtectedRoute roles={['FARMER']}><SlotBooking /></ProtectedRoute>} />
-        <Route path="/farmer/token" element={<ProtectedRoute roles={['FARMER']}><DigitalToken /></ProtectedRoute>} />
-        <Route path="/farmer/queue" element={<ProtectedRoute roles={['FARMER']}><LiveQueue /></ProtectedRoute>} />
-        <Route path="/farmer/procurement" element={<ProtectedRoute roles={['FARMER']}><ProcurementProgress /></ProtectedRoute>} />
-        <Route path="/farmer/payment" element={<ProtectedRoute roles={['FARMER']}><PaymentStatus /></ProtectedRoute>} />
-        <Route path="/farmer/notifications" element={<ProtectedRoute roles={['FARMER']}><FarmerNotifications /></ProtectedRoute>} />
-        <Route path="/farmer/profile" element={<ProtectedRoute roles={['FARMER']}><FarmerProfile /></ProtectedRoute>} />
+        <Route path="/farmer" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><FarmerDashboard /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/produce" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><ProduceRegistration /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/centres" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><CentreSelection /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/slots" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><SlotBooking /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/token" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><DigitalToken /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/queue" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><LiveQueue /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/procurement" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><ProcurementProgress /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/payment" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><PaymentStatus /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/notifications" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><FarmerNotifications /></FarmerLayout></ProtectedRoute>} />
+        <Route path="/farmer/profile" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><FarmerProfile /></FarmerLayout></ProtectedRoute>} />
 
         {/* Officer Routes */}
-        <Route path="/officer" element={<ProtectedRoute roles={['OFFICER']}><OfficerDashboard /></ProtectedRoute>} />
-        <Route path="/officer/queue" element={<ProtectedRoute roles={['OFFICER']}><OfficerQueue /></ProtectedRoute>} />
-        <Route path="/officer/procurement" element={<ProtectedRoute roles={['OFFICER']}><OfficerProcurement /></ProtectedRoute>} />
-        <Route path="/officer/farmers" element={<ProtectedRoute roles={['OFFICER']}><OfficerFarmers /></ProtectedRoute>} />
+        <Route path="/officer" element={<ProtectedRoute roles={['OFFICER']}><OfficerLayout><OfficerDashboard /></OfficerLayout></ProtectedRoute>} />
+        <Route path="/officer/queue" element={<ProtectedRoute roles={['OFFICER']}><OfficerLayout><OfficerQueue /></OfficerLayout></ProtectedRoute>} />
+        <Route path="/officer/procurement" element={<ProtectedRoute roles={['OFFICER']}><OfficerLayout><OfficerProcurement /></OfficerLayout></ProtectedRoute>} />
+        <Route path="/officer/farmers" element={<ProtectedRoute roles={['OFFICER']}><OfficerLayout><OfficerFarmers /></OfficerLayout></ProtectedRoute>} />
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/centres" element={<ProtectedRoute roles={['ADMIN']}><CentreMonitoring /></ProtectedRoute>} />
-        <Route path="/admin/slots" element={<ProtectedRoute roles={['ADMIN']}><AdminSlots /></ProtectedRoute>} />
-        <Route path="/admin/payments" element={<ProtectedRoute roles={['ADMIN']}><PaymentMonitoring /></ProtectedRoute>} />
-        <Route path="/admin/analytics" element={<ProtectedRoute roles={['ADMIN']}><Analytics /></ProtectedRoute>} />
-        <Route path="/admin/reports" element={<ProtectedRoute roles={['ADMIN']}><Reports /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><AdminDashboard /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/centres" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><CentreMonitoring /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/slots" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><AdminSlots /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/payments" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><PaymentMonitoring /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/analytics" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><Analytics /></AdminLayout></ProtectedRoute>} />
+        <Route path="/admin/reports" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><Reports /></AdminLayout></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -86,8 +88,11 @@ export default function App() {
   return (
     <AuthProvider>
       <LanguageProvider>
-        <AppRoutes />
+        <ToastProvider>
+          <AppRoutes />
+        </ToastProvider>
       </LanguageProvider>
     </AuthProvider>
   );
 }
+

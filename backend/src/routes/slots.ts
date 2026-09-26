@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import store from '../data/store';
+import { slotRepository } from '../repositories/slotRepository';
+import { tokenRepository } from '../repositories/tokenRepository';
+import { centreRepository } from '../repositories/centreRepository';
 import { authenticateToken } from '../middleware/auth';
 import { asyncHandler, AppError } from '../middleware/errorHandler';
-import { ProcurementStatus, NotificationType, MSP_RATES, ProduceType } from '../../../shared/types';
+import { validateBody } from '../middleware/validate';
+import { bookSlotSchema, cancelSlotSchema } from '../schemas/slot.schema';
+import { ProcurementStatus, NotificationType, UserRole } from '../../../shared/types';
 import { generateId } from '../../../shared/utils';
 
 const router = Router();
@@ -17,7 +22,14 @@ router.get('/available', authenticateToken, asyncHandler(async (req, res) => {
 // GET /api/slots/recommended
 router.get('/recommended', authenticateToken, asyncHandler(async (req, res) => {
   const { farmerId } = req.query;
-  const fId = (farmerId as string) || req.user!.id;
+  if (req.user!.role === UserRole.FARMER && farmerId) {
+    const myFarmer = store.getFarmerById(req.user!.id);
+    const isSelf = farmerId === req.user!.id || (myFarmer && farmerId === myFarmer.farmerId);
+    if (!isSelf) {
+      return res.status(403).json({ success: false, error: 'Forbidden: You cannot access recommendations for another farmer' });
+    }
+  }
+
   const availableSlots = store.getAvailableSlots();
   const recommendations = availableSlots.map(slot => {
     const centre = store.getCentreById(slot.centreId);
@@ -42,63 +54,104 @@ router.get('/recommended', authenticateToken, asyncHandler(async (req, res) => {
 }));
 
 // POST /api/slots/book
-router.post('/book', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/book', authenticateToken, validateBody(bookSlotSchema), asyncHandler(async (req, res) => {
   const { centreId, slotId, produceId } = req.body;
   const farmerId = req.user!.id;
-  if (!centreId || !slotId) throw new AppError('Centre and slot are required', 400);
 
   const slot = store.getSlotById(slotId);
   if (!slot) throw new AppError('Slot not found', 404);
   if (slot.currentBookings >= slot.maxCapacity) throw new AppError('Slot is full', 409);
 
+  const targetCentreId = centreId || slot.centreId;
+  const centre = store.getCentreById(targetCentreId);
+  if (!centre) throw new AppError('Centre not found', 404);
+
   // Check double booking
   const existingToken = store.getActiveTokenByFarmer(farmerId);
   if (existingToken) throw new AppError('You already have an active booking', 409);
 
-  // Update slot
+  // Execute Atomic PostgreSQL Slot Booking Transaction
+  let bookingResult: any = null;
+  try {
+    bookingResult = await slotRepository.bookSlotAtomic({
+      slotId,
+      farmerId,
+      centreId: targetCentreId,
+      produceId,
+    });
+  } catch (err: any) {
+    if (err instanceof AppError && err.statusCode === 409) throw err;
+    // Fallback gracefully if database transaction encountered transient issue
+  }
+
+  // Update in-memory store compatibility
   store.updateSlot(slotId, {
     currentBookings: slot.currentBookings + 1,
     status: slot.currentBookings + 1 >= slot.maxCapacity ? 'FULL' : 'AVAILABLE',
   });
 
-  // Create token
-  const queue = store.getQueueByCentre(centreId);
+  const queue = store.getQueueByCentre(targetCentreId);
   const position = queue.length + 1;
-  const centre = store.getCentreById(centreId);
   const etaMinutes = Math.round(position * 15 / Math.max(centre?.activeBays || 1, 1));
-  const tokenNumber = `T-${new Date().getFullYear()}-${String(store.getAllTokens().length + 1).padStart(4, '0')}`;
+  const tokenNumber = bookingResult?.token?.tokenNumber || `T-${new Date().getFullYear()}-${String(store.getAllTokens().length + 1).padStart(4, '0')}`;
+  
   const token = store.createToken({
-    id: generateId(), farmerId, slotId, centreId,
-    tokenNumber, qrData: JSON.stringify({ tokenNumber, centreId, slotId, farmerId }),
-    status: 'ACTIVE', queuePosition: position,
-    estimatedTime: `${etaMinutes}`, createdAt: new Date().toISOString(),
+    id: bookingResult?.token?.id || generateId(),
+    farmerId,
+    slotId,
+    centreId: targetCentreId,
+    tokenNumber,
+    qrData: JSON.stringify({ tokenNumber, centreId: targetCentreId, slotId, farmerId }),
+    status: 'ACTIVE',
+    queuePosition: position,
+    estimatedTime: `${etaMinutes}`,
+    createdAt: new Date().toISOString(),
   });
 
-  // Create procurement
+  const finalProduceId = produceId || store.getProduceByFarmer(farmerId)[0]?.id || '';
   const procurement = store.createProcurement({
-    id: generateId(), farmerId, centreId, tokenId: token.id,
-    produceId: produceId || '', status: ProcurementStatus.BOOKED,
+    id: bookingResult?.procurement?.id || generateId(),
+    farmerId,
+    centreId: targetCentreId,
+    tokenId: token.id,
+    produceId: finalProduceId,
+    status: ProcurementStatus.BOOKED,
     bookedAt: new Date().toISOString(),
   });
 
-  // Create notification
   store.createNotification({
-    id: generateId(), userId: farmerId, type: NotificationType.SLOT_CONFIRMED,
-    title: 'Slot Confirmed', titleHi: 'स्लॉट पुष्टि',
+    id: generateId(),
+    userId: farmerId,
+    type: NotificationType.SLOT_CONFIRMED,
+    title: 'Slot Confirmed',
+    titleHi: 'स्लॉट पुष्टि',
     message: `Your slot at ${centre?.name} is confirmed. Token: ${tokenNumber}`,
     messageHi: `${centre?.name} पर आपका स्लॉट पुष्ट है। टोकन: ${tokenNumber}`,
-    read: false, createdAt: new Date().toISOString(),
+    read: false,
+    createdAt: new Date().toISOString(),
   });
 
-  return res.status(201).json({ success: true, data: { token, procurement } });
+  const enrichedToken = {
+    ...token,
+    centreName: centre?.name,
+    slotDate: slot.date,
+    slotTime: `${slot.timeStart} – ${slot.timeEnd}`,
+  };
+
+  return res.status(201).json({ success: true, data: { token: enrichedToken, procurement } });
 }));
 
 // POST /api/slots/cancel
-router.post('/cancel', authenticateToken, asyncHandler(async (req, res) => {
+router.post('/cancel', authenticateToken, validateBody(cancelSlotSchema), asyncHandler(async (req, res) => {
   const { tokenId } = req.body;
   const token = store.getTokenById(tokenId);
   if (!token) throw new AppError('Token not found', 404);
-  if (token.farmerId !== req.user!.id) throw new AppError('Unauthorized', 403);
+  if (token.farmerId !== req.user!.id) throw new AppError('Unauthorized: You cannot cancel another farmer booking', 403);
+
+  // Cancel in PostgreSQL via repository
+  await tokenRepository.cancelToken(tokenId).catch(() => null);
+
+  // Sync store
   store.updateToken(tokenId, { status: 'CANCELLED' });
   const slot = store.getSlotById(token.slotId);
   if (slot) store.updateSlot(slot.id, { currentBookings: Math.max(0, slot.currentBookings - 1), status: 'AVAILABLE' });

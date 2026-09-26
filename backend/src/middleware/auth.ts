@@ -3,7 +3,17 @@ import jwt from 'jsonwebtoken';
 import store from '../data/store';
 import { User, UserRole } from '../../../shared/types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'kisansetu-dev-secret';
+import logger from '../lib/logger';
+
+const isProduction = process.env.NODE_ENV === 'production';
+const envSecret = process.env.JWT_SECRET;
+
+if (isProduction && (!envSecret || envSecret === 'kisansetu-dev-secret' || envSecret.length < 32)) {
+  logger.fatal('FATAL CONFIGURATION ERROR: In production mode, JWT_SECRET must be set to a secure string of at least 32 characters.');
+  process.exit(1);
+}
+
+const JWT_SECRET = envSecret || 'kisansetu-dev-secret-change-in-production';
 
 // Extend Express Request
 declare global {

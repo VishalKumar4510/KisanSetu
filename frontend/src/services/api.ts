@@ -108,4 +108,39 @@ export const aiAPI = {
   query: (query: string, farmerId?: string) => api.post('/ai/query', { query, farmerId }),
 };
 
+// Officer Workflow API
+export const officerAPI = {
+  getStats: (centreId?: string) => api.get('/officer/stats', { params: { centreId } }),
+  getCurrentFarmer: (centreId?: string) => api.get('/officer/current-farmer', { params: { centreId } }),
+  callFarmer: (centreId: string, tokenId?: string) => api.post('/officer/call', { centreId, tokenId }),
+  submitWeighment: (data: { procurementId: string; grossWeight: number; tareWeight: number; scaleId?: string }) =>
+    api.post('/officer/weighment', data),
+  submitQuality: (data: {
+    procurementId: string;
+    crop?: string;
+    moistureContent: number;
+    foreignMatter?: number;
+    damagedGrains?: number;
+    grade?: string;
+    qualityResult: 'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW';
+    remarks?: string;
+  }) => api.post('/officer/quality', data),
+  calculateProcurement: (procurementId: string) => api.post('/officer/calculate', { procurementId }),
+  getPaymentReview: (procurementId: string) => api.post('/officer/payment/review', { procurementId }),
+  initiatePayment: (procurementId: string) => api.post('/officer/payment/initiate', { procurementId }),
+  processPayment: (paymentId: string, simulateFailure?: boolean) =>
+    api.post('/officer/payment/process', { paymentId, simulateFailure }),
+  getPayments: (centreId?: string, status?: string) => api.get('/officer/payments', { params: { centreId, status } }),
+  getReceipt: (procurementId: string) => api.get(`/officer/procurement/${procurementId}/receipt`),
+  getQueue: (centreId?: string) => api.get('/officer/queue', { params: { centreId } }),
+  pauseQueue: (centreId: string, reason?: string) => api.post('/officer/queue/pause', { centreId, reason }),
+  resumeQueue: (centreId: string) => api.post('/officer/queue/resume', { centreId }),
+  getFarmerHistory: (farmerId: string) => api.get(`/officer/farmers/${farmerId}/history`),
+  getAlerts: (centreId?: string) => api.get('/officer/alerts', { params: { centreId } }),
+  markAlertRead: (alertId: string) => api.patch(`/officer/alerts/${alertId}/read`),
+  getSettlement: (centreId?: string) => api.get('/officer/settlement', { params: { centreId } }),
+  getScales: (centreId?: string) => api.get('/officer/scales', { params: { centreId } }),
+  updateScale: (id: string, status: string) => api.patch(`/officer/scales/${id}`, { status }),
+};
+
 export default api;

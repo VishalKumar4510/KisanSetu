@@ -37,10 +37,23 @@ export default function Login() {
     }
   };
 
-  const fillCredentials = (cred: typeof demoCredentials[0]) => {
+  const quickLogin = async (cred: typeof demoCredentials[0]) => {
     setPhone(cred.phone);
     setPassword(cred.password);
     setError('');
+    setLoading(true);
+    try {
+      await login(cred.phone, cred.password);
+      const user = JSON.parse(localStorage.getItem('kisansetu_user') || '{}');
+      if (user.role === 'FARMER') navigate('/farmer');
+      else if (user.role === 'OFFICER') navigate('/officer');
+      else if (user.role === 'ADMIN') navigate('/admin');
+      else navigate('/farmer');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -123,8 +136,10 @@ export default function Login() {
               {demoCredentials.map(cred => (
                 <button
                   key={cred.role}
-                  onClick={() => fillCredentials(cred)}
-                  className={`group flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg ${cred.bg}`}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => quickLogin(cred)}
+                  className={`group flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg disabled:opacity-60 cursor-pointer ${cred.bg}`}
                 >
                   <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${cred.color} flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
                     <cred.icon className="w-6 h-6 text-white" />

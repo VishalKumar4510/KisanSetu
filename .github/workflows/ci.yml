@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-build:
+    name: Test, Build & Docker Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install workspace dependencies
+        run: npm run install:all
+
+      - name: Generate Prisma client & seed database
+        run: cd backend && npx prisma generate && npm run db:seed
+
+      - name: Backend TypeScript check
+        run: cd backend && npx tsc --noEmit
+
+      - name: Frontend TypeScript check
+        run: cd frontend && npx tsc --noEmit
+
+      - name: Backend automated tests (Vitest)
+        run: cd backend && npm test
+
+      - name: Backend test coverage
+        run: cd backend && npm run test:coverage
+
+      - name: Backend production build
+        run: cd backend && npm run build
+
+      - name: Frontend production build
+        run: cd frontend && npm run build
+
+      - name: Validate Docker Compose Configuration
+        run: docker compose config
+
+      - name: Validate Backend Docker Build
+        run: docker build -f backend/Dockerfile -t kisansetu-backend:ci .
+
+      - name: Validate Frontend Docker Build
+        run: docker build -f frontend/Dockerfile -t kisansetu-frontend:ci .

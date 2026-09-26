@@ -1,306 +1,770 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useLanguage } from '../../context/LanguageContext';
-import { farmerAPI, queueAPI, notificationAPI } from '../../services/api';
-import { LayoutDashboard, Users, Ticket, TrendingUp, User, Calendar, MapPin, Clock, CreditCard, Bell, ChevronRight, Sprout, Package, Globe, LogOut, Zap, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { farmerAPI, queueAPI, notificationAPI } from '@/services/api';
+import {
+  Calendar,
+  Users,
+  Ticket,
+  CreditCard,
+  Bell,
+  ChevronRight,
+  Sprout,
+  Package,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  RefreshCw,
+  QrCode,
+  ShieldCheck,
+  TrendingUp,
+  Sparkles,
+  ExternalLink,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { Card } from '@/components/ui/card';
+import { AnimatedDashboardCard } from '@/components/ui/animated-dashboard-card';
+import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Progress } from '@/components/ui/progress';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SectionHeader } from '@/components/ui/section-header';
+import { Skeleton, SkeletonCard } from '@/components/ui/skeleton';
 
-const statusSteps = ['BOOKED','ARRIVED','GATE_ENTRY','WEIGHING','QUALITY_CHECK','PROCUREMENT','PAYMENT_PENDING','PAYMENT_PROCESSING','COMPLETED'];
+const statusSteps = [
+  'BOOKED',
+  'ARRIVED',
+  'GATE_ENTRY',
+  'WEIGHING',
+  'QUALITY_CHECK',
+  'PROCUREMENT',
+  'PAYMENT_PENDING',
+  'PAYMENT_PROCESSING',
+  'COMPLETED',
+];
 
-function getStatusBg(status: string) {
-  const m: Record<string, string> = {
-    BOOKED: 'bg-blue-100 text-blue-700', ARRIVED: 'bg-amber-100 text-amber-700',
-    GATE_ENTRY: 'bg-orange-100 text-orange-700', WEIGHING: 'bg-purple-100 text-purple-700',
-    QUALITY_CHECK: 'bg-indigo-100 text-indigo-700', PROCUREMENT: 'bg-green-100 text-green-700',
-    PAYMENT_PENDING: 'bg-yellow-100 text-yellow-700', PAYMENT_PROCESSING: 'bg-cyan-100 text-cyan-700',
-    COMPLETED: 'bg-emerald-100 text-emerald-700',
-  };
-  return m[status] || 'bg-gray-100 text-gray-700';
-}
+const cropEmojiMap: Record<string, string> = {
+  wheat: '🌾',
+  gehun: '🌾',
+  paddy: '🍚',
+  rice: '🍚',
+  dhan: '🍚',
+  maize: '🌽',
+  corn: '🌽',
+  makka: '🌽',
+  mustard: '🌻',
+  sarson: '🌻',
+  gram: '🌱',
+  chana: '🌱',
+  cotton: '☁️',
+  kapas: '☁️',
+  soybean: '🫘',
+  pulses: '🫘',
+};
 
-function getStatusLabel(status: string) {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+function getCropEmoji(name?: string) {
+  if (!name) return '🌾';
+  const key = name.toLowerCase().trim();
+  for (const [crop, emoji] of Object.entries(cropEmojiMap)) {
+    if (key.includes(crop)) return emoji;
+  }
+  return '🌾';
 }
 
 export default function FarmerDashboard() {
-  const { user, logout } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { user } = useAuth();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [profile, setProfile] = useState<any>(null);
   const [queuePos, setQueuePos] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { fetchData(); const i = setInterval(fetchData, 15000); return () => clearInterval(i); }, []);
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 15000);
+    return () => clearInterval(interval);
+  }, [location.key]);
 
-  const fetchData = async () => {
+  const fetchData = async (isManual = false) => {
+    if (isManual) setRefreshing(true);
     try {
       const [profileRes, queueRes, notifRes] = await Promise.all([
-        farmerAPI.getProfile(), queueAPI.getPosition(), notificationAPI.getAll()
+        farmerAPI.getProfile(),
+        queueAPI.getPosition(),
+        notificationAPI.getAll(),
       ]);
       setProfile(profileRes.data.data);
       setQueuePos(queueRes.data.data);
-      setNotifications(notifRes.data.data?.notifications?.slice(0, 3) || []);
-    } catch {} finally { setLoading(false); }
+      setNotifications(notifRes.data.data?.notifications?.slice(0, 4) || []);
+    } catch {
+      // Graceful fallback
+    } finally {
+      setLoading(false);
+      if (isManual) setRefreshing(false);
+    }
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
-      <div className="text-center animate-fadeIn">
-        <div className="w-16 h-16 gradient-green rounded-2xl flex items-center justify-center mx-auto mb-4 glow-green">
-          <Sprout className="w-8 h-8 text-white animate-pulse" />
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fadeIn">
+        <div className="h-44 rounded-3xl bg-gray-200/70 animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 rounded-2xl bg-gray-200/70 animate-pulse" />
+          ))}
         </div>
-        <p className="text-gray-400 text-sm">{t('loading')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   const proc = profile?.activeProcurement;
   const token = profile?.activeToken;
   const payment = profile?.latestPayment;
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const latestNotif = notifications[0];
+
+  const currentStepIdx = proc ? statusSteps.indexOf(proc.status) : -1;
+  const progressPercent =
+    currentStepIdx >= 0
+      ? Math.round(((currentStepIdx + 1) / statusSteps.length) * 100)
+      : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="gradient-green text-white px-5 pt-5 pb-8 rounded-b-[2rem] relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6 animate-fadeIn">
+      {/* 1. Welcome & Farmer Identity Banner */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#14532D] via-[#16A34A] to-[#15803D] text-white p-5 sm:p-7 shadow-md">
+        {/* Subtle decorative concentric rings */}
+        <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/10 blur-xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-12 w-64 h-64 rounded-full bg-emerald-900/30 blur-2xl pointer-events-none" />
 
-        <div className="relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <Sprout className="w-5 h-5" />
-              </div>
-              <span className="font-bold text-lg tracking-tight">{t('appName')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-                className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center text-xs font-bold hover:bg-white/25 transition-all">
-                {language === 'en' ? 'हिं' : 'EN'}
-              </button>
-              <button onClick={() => navigate('/farmer/notifications')} className="relative w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-all">
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold ring-2 ring-green-700">{unreadCount}</span>}
-              </button>
-              <button onClick={logout} className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-all">
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Welcome */}
-          <div className="mt-2">
-            <p className="text-green-200 text-sm font-medium">{t('welcome')},</p>
-            <p className="font-bold text-2xl mt-0.5">{profile?.name || user?.name}</p>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-green-200 text-xs bg-white/10 px-2.5 py-1 rounded-lg backdrop-blur-sm">
-                {profile?.farmerId}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-md text-emerald-50 border border-white/25">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-200" />
+                {language === 'hi' ? 'सत्यापित किसान' : 'Verified Farmer'}
               </span>
-              <span className="text-green-200 text-xs flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> {profile?.village}, {profile?.district}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-4 -mt-4 space-y-4 animate-slideUp">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-3 stagger">
-          {[
-            { icon: Calendar, label: t('bookSlot'), path: '/farmer/centres', gradient: 'from-blue-500 to-blue-600', bg: 'bg-blue-50' },
-            { icon: Users, label: t('liveQueue'), path: '/farmer/queue', gradient: 'from-orange-500 to-amber-600', bg: 'bg-orange-50' },
-            { icon: Ticket, label: t('myToken'), path: '/farmer/token', gradient: 'from-purple-500 to-violet-600', bg: 'bg-purple-50' },
-            { icon: CreditCard, label: t('payment'), path: '/farmer/payment', gradient: 'from-emerald-500 to-green-600', bg: 'bg-emerald-50' },
-          ].map(({ icon: Icon, label, path, gradient, bg }) => (
-            <button key={path} onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white shadow-sm border border-gray-100/80 hover:shadow-md hover:border-gray-200 transition-all duration-300 active:scale-95`}>
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm`}>
-                <Icon className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-[11px] font-semibold text-gray-600 text-center leading-tight">{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Token & Queue Card */}
-        {token && (
-          <div onClick={() => navigate('/farmer/token')} className="card-hover animate-scaleIn">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t('tokenNumber')}</p>
-                <p className="text-3xl font-extrabold text-green-700 mt-1 tracking-tight">{token.tokenNumber}</p>
-                <span className="badge bg-green-100 text-green-700 mt-2">● Active</span>
-              </div>
-              {queuePos && (
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center pulse-green shadow-lg">
-                    <div className="text-white">
-                      <p className="text-3xl font-extrabold">{queuePos.position}</p>
-                      <p className="text-[9px] font-medium opacity-80 uppercase tracking-wider">Position</p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 font-medium">
-                    <Clock className="w-3 h-3 inline mr-0.5" /> ~{queuePos.estimatedTime} min
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Procurement Status */}
-        {proc && (
-          <div onClick={() => navigate('/farmer/procurement')} className="card-hover">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-gray-800">{t('procurementStatus')}</h3>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
-            </div>
-            <div className="flex items-center gap-2.5 mb-3">
-              <span className={`badge ${getStatusBg(proc.status)}`}>
-                {getStatusLabel(proc.status)}
-              </span>
-              {proc.centreName && (
-                <span className="text-xs text-gray-400 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> {proc.centreName}
+              {(profile?.farmerId || user?.farmerId) && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-black/20 text-emerald-100">
+                  ID: {profile?.farmerId || user?.farmerId}
                 </span>
               )}
             </div>
-            {/* Progress bar */}
-            <div className="flex items-center gap-1">
-              {statusSteps.map((s, i) => {
-                const currentIdx = statusSteps.indexOf(proc.status);
-                const done = i <= currentIdx;
-                const isCurrent = i === currentIdx;
-                return (
-                  <div key={s} className="flex-1 relative">
-                    <div className={`h-2 rounded-full transition-all duration-500 ${done ? 'bg-green-500' : 'bg-gray-200'} ${isCurrent ? 'shadow-sm shadow-green-500/50' : ''}`} />
-                    {isCurrent && <div className="absolute -top-0.5 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm" />}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-gray-400">Booked</span>
-              <span className="text-[10px] text-gray-400">Completed</span>
-            </div>
-          </div>
-        )}
 
-        {/* Payment Card */}
-        {payment && (
-          <div onClick={() => navigate('/farmer/payment')} className="card-hover">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t('payment')}</p>
-                <p className="text-2xl font-extrabold text-gray-800 mt-1">₹{payment.netAmount?.toLocaleString('en-IN')}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className={`badge ${payment.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {payment.status === 'COMPLETED' ? <><CheckCircle2 className="w-3 h-3 mr-1" /> Completed</> : payment.status}
-                  </span>
-                </div>
-              </div>
-              {payment.dbtReferenceId && (
-                <div className="text-right">
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider">DBT Ref</p>
-                  <p className="text-xs font-mono text-gray-500 mt-0.5">{payment.dbtReferenceId}</p>
-                </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              {t('welcome')}, {profile?.name || user?.name || 'Kisan'}
+            </h1>
+
+            <div className="flex items-center gap-4 text-xs sm:text-sm text-emerald-100 flex-wrap">
+              {(profile?.village || profile?.district) && (
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-emerald-300 shrink-0" />
+                  {profile.village ? `${profile.village}, ` : ''}
+                  {profile.district}
+                </span>
+              )}
+              {profile?.landArea && (
+                <span className="flex items-center gap-1.5 border-l border-white/20 pl-3">
+                  <Sprout className="w-4 h-4 text-emerald-300 shrink-0" />
+                  {profile.landArea} {language === 'hi' ? 'एकड़ भूमि' : 'Acres Land'}
+                </span>
               )}
             </div>
           </div>
-        )}
 
-        {/* Produce Section */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                <Package className="w-4 h-4 text-amber-600" />
-              </div>
-              <h3 className="font-bold text-gray-800">{t('registerProduce')}</h3>
-            </div>
-            <button onClick={() => navigate('/farmer/produce')} className="text-sm text-green-600 font-semibold hover:text-green-700 flex items-center gap-1">
-              + Add <ChevronRight className="w-3 h-3" />
-            </button>
+          <div className="flex items-center gap-2.5 self-start md:self-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchData(true)}
+              disabled={refreshing}
+              leftIcon={
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
+                />
+              }
+              className="bg-white/10 hover:bg-white/20 text-white border-white/30 text-xs py-2 px-3.5 backdrop-blur-sm"
+            >
+              {refreshing
+                ? language === 'hi'
+                  ? 'अद्यतन...'
+                  : 'Updating...'
+                : language === 'hi'
+                ? 'रिफ्रेश'
+                : 'Live Sync'}
+            </Button>
           </div>
-          {profile?.produce?.length > 0 ? (
+        </div>
+      </section>
+
+      {/* 2. Notification Indicator / Preview Pill */}
+      {unreadCount > 0 && latestNotif && (
+        <section
+          onClick={() => navigate('/farmer/notifications')}
+          className="cursor-pointer group flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200/80 hover:bg-amber-100/80 hover:border-amber-300 transition-all duration-150 shadow-2xs"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <Bell className="w-4 h-4 animate-bounce" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-amber-900 truncate">
+                  {language === 'hi' ? latestNotif.titleHi : latestNotif.title}
+                </span>
+                <Badge variant="warning" size="sm">
+                  {unreadCount} {language === 'hi' ? 'नई सूचना' : 'new'}
+                </Badge>
+              </div>
+              <p className="text-xs text-amber-800/80 truncate mt-0.5">
+                {language === 'hi' ? latestNotif.messageHi : latestNotif.message}
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-amber-600 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2" />
+        </section>
+      )}
+
+      {/* 3. Active Token Hero / Booking Callout (Enhanced with 21st.dev Animated Dashboard Card) */}
+      <section>
+        {token ? (
+          <AnimatedDashboardCard
+            variant="white"
+            glow={true}
+            withDots={true}
+            className="p-5 sm:p-6"
+          >
+            {/* Top digital pass header */}
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-green-100 text-[#16A34A] flex items-center justify-center">
+                  <Ticket className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider">
+                  {language === 'hi' ? 'सक्रिय मंडी टोकन' : 'Active Digital Mandi Pass'}
+                </span>
+              </div>
+              <StatusBadge status={token.status || 'ACTIVE'} language={language} />
+            </div>
+
+            {/* Main Token Body */}
+            <div className="pt-5 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <div className="space-y-1">
+                <p className="text-xs text-[#64748B] font-medium uppercase tracking-wider">
+                  {t('tokenNumber')}
+                </p>
+                <p className="text-3xl sm:text-4xl md:text-5xl font-black text-[#14532D] tracking-tight font-mono break-all sm:break-normal">
+                  {token.tokenNumber}
+                </p>
+                {token.centreName && (
+                  <p className="text-xs sm:text-sm text-[#64748B] flex items-center gap-1.5 pt-1">
+                    <MapPin className="w-4 h-4 text-[#16A34A]" />
+                    <span className="font-medium text-[#17201A]">{token.centreName}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Queue Position Card / Pulse Widget */}
+              {queuePos && (
+                <div className="flex items-center gap-4 bg-[#F0FDF4] border border-green-200/80 rounded-2xl p-4 sm:p-5 w-full sm:w-auto">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#16A34A] to-[#15803D] text-white flex flex-col items-center justify-center pulse-green shadow-xs shrink-0">
+                    <span className="text-2xl font-black leading-none">
+                      #{queuePos.position}
+                    </span>
+                    <span className="text-[9px] font-semibold uppercase tracking-wider opacity-85 mt-0.5">
+                      {language === 'hi' ? 'कतार स्थिति' : 'Position'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-[#14532D]">
+                      <Clock className="w-3.5 h-3.5 text-[#16A34A]" />
+                      <span>
+                        ~{queuePos.estimatedTime || 15} {language === 'hi' ? 'मिनट प्रतीक्षा' : 'min wait'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#64748B]">
+                      {language === 'hi'
+                        ? `कतार में कुल ${queuePos.totalInQueue || 1} किसान`
+                        : `${queuePos.totalInQueue || 1} farmers currently ahead`}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* CTAs */}
+            <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex items-center gap-3 flex-wrap">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => navigate('/farmer/token')}
+                leftIcon={<QrCode className="w-4 h-4" />}
+                className="flex-1 sm:flex-none"
+              >
+                {language === 'hi' ? 'डिजिटल पास और QR देखें' : 'View Digital QR Pass'}
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => navigate('/farmer/queue')}
+                leftIcon={<Users className="w-4 h-4" />}
+                className="flex-1 sm:flex-none"
+              >
+                {t('liveQueue')}
+              </Button>
+            </div>
+          </AnimatedDashboardCard>
+        ) : (
+          <AnimatedDashboardCard
+            variant="emerald"
+            glow={true}
+            withDots={true}
+            className="p-6 sm:p-7"
+          >
+            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-5 text-center sm:text-left">
+              <div className="space-y-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F0FDF4] text-[#15803D] border border-green-200">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {language === 'hi' ? 'एमएसपी खरीद स्लॉट' : 'MSP Procurement Slot'}
+                </span>
+                <h3 className="text-lg sm:text-xl font-bold text-[#17201A]">
+                  {language === 'hi'
+                    ? 'अपनी उपज बेचने के लिए केंद्र और समय चुनें'
+                    : 'Ready to Sell Your Harvest at Minimum Support Price?'}
+                </h3>
+                <p className="text-xs sm:text-sm text-[#64748B] max-w-xl">
+                  {language === 'hi'
+                    ? 'लंबी कतारों से बचें। अपने नजदीकी अधिकृत खरीद केंद्र पर पहले से स्लॉट बुक करें और डिजिटल टोकन प्राप्त करें।'
+                    : 'Skip the chaos and hours of waiting in line. Pre-book an arrival slot at your nearest procurement mandi for hassle-free weighment and direct DBT.'}
+                </p>
+              </div>
+
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate('/farmer/centres')}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+                className="shrink-0 w-full sm:w-auto"
+              >
+                {language === 'hi' ? 'अभी स्लॉट बुक करें' : 'Book Mandi Slot Now'}
+              </Button>
+            </div>
+          </AnimatedDashboardCard>
+        )}
+      </section>
+
+      {/* 4. Quick Actions Grid */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-[#64748B]">
+          {language === 'hi' ? 'त्वरित सेवाएं' : 'Quick Mandi Services'}
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          {[
+            {
+              title: t('bookSlot'),
+              desc: language === 'hi' ? 'नया स्लॉट आरक्षित करें' : 'Reserve mandi arrival',
+              icon: Calendar,
+              path: '/farmer/centres',
+              color: 'text-emerald-700 bg-emerald-50 border-emerald-100 hover:border-emerald-300',
+              iconBg: 'bg-emerald-600 text-white',
+            },
+            {
+              title: t('liveQueue'),
+              desc: language === 'hi' ? 'कतार और ईटीए जांचें' : 'Wait time & position',
+              icon: Users,
+              path: '/farmer/queue',
+              color: 'text-amber-800 bg-amber-50 border-amber-100 hover:border-amber-300',
+              iconBg: 'bg-amber-500 text-white',
+            },
+            {
+              title: t('myToken'),
+              desc: language === 'hi' ? 'गेट पास और QR कोड' : 'Check-in QR ticket',
+              icon: Ticket,
+              path: '/farmer/token',
+              color: 'text-purple-800 bg-purple-50 border-purple-100 hover:border-purple-300',
+              iconBg: 'bg-purple-600 text-white',
+            },
+            {
+              title: t('payment'),
+              desc: language === 'hi' ? 'डीबीटी बैंक अंतरण' : 'Direct DBT tracking',
+              icon: CreditCard,
+              path: '/farmer/payment',
+              color: 'text-blue-800 bg-blue-50 border-blue-100 hover:border-blue-300',
+              iconBg: 'bg-blue-600 text-white',
+            },
+          ].map((action, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => navigate(action.path)}
+              className={`p-4 rounded-2xl border text-left transition-all duration-200 hover:shadow-sm active:scale-[0.98] flex flex-col justify-between h-32 group ${action.color}`}
+            >
+              <div className="flex items-center justify-between w-full">
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xs transition-transform group-hover:scale-105 ${action.iconBg}`}
+                >
+                  <action.icon className="w-5 h-5" />
+                </div>
+                <ChevronRight className="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-[#17201A] leading-tight">
+                  {action.title}
+                </p>
+                <p className="text-[11px] text-[#64748B] mt-0.5 truncate">
+                  {action.desc}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. Procurement Status Tracker */}
+      {proc && (
+        <section>
+          <Card
+            onClick={() => navigate('/farmer/procurement')}
+            className="cursor-pointer hover:shadow-md transition-shadow p-5 sm:p-6 space-y-4"
+          >
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-[#17201A]">
+                    {t('procurementStatus')}
+                  </h3>
+                  <StatusBadge status={proc.status} language={language} size="sm" />
+                </div>
+                {proc.centreName && (
+                  <p className="text-xs text-[#64748B] flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-[#16A34A]" />
+                    {proc.centreName}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/farmer/procurement');
+                }}
+                rightIcon={<ChevronRight className="w-4 h-4" />}
+                className="text-xs text-[#16A34A]"
+              >
+                {language === 'hi' ? 'विस्तार देखें' : 'View Timeline'}
+              </Button>
+            </div>
+
+            {/* Stepper progress visual */}
             <div className="space-y-2">
-              {profile.produce.slice(0, 3).map((p: any) => (
-                <div key={p.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-gray-50/80 border border-gray-100/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🌾</span>
-                    <div>
-                      <span className="font-semibold text-gray-700 text-sm">{p.type}</span>
-                      <span className="text-xs text-gray-400 ml-2">{p.quantity} {p.unit}</span>
+              <div className="flex items-center justify-between text-xs text-[#64748B]">
+                <span className="font-medium">
+                  {language === 'hi' ? 'वर्तमान चरण' : 'Current Stage'}:{' '}
+                  <strong className="text-[#17201A]">
+                    {proc.status.replace(/_/g, ' ')}
+                  </strong>
+                </span>
+                <span className="font-mono font-semibold text-[#16A34A]">
+                  {progressPercent}%
+                </span>
+              </div>
+              <Progress value={progressPercent} variant="primary" size="md" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
+              <div className="p-2 rounded-xl bg-gray-50 border border-gray-100">
+                <span className="text-[#64748B] block text-[10px] uppercase">
+                  {language === 'hi' ? 'कुल उपज' : 'Declared Weight'}
+                </span>
+                <strong className="text-[#17201A] font-semibold text-xs">
+                  {proc.quantity ? `${proc.quantity} Qt` : 'Pending weighment'}
+                </strong>
+              </div>
+              <div className="p-2 rounded-xl bg-gray-50 border border-gray-100">
+                <span className="text-[#64748B] block text-[10px] uppercase">
+                  {language === 'hi' ? 'गुणवत्ता' : 'Quality Grade'}
+                </span>
+                <strong className="text-[#17201A] font-semibold text-xs">
+                  {proc.grade || 'In Inspection'}
+                </strong>
+              </div>
+              <div className="p-2 rounded-xl bg-gray-50 border border-gray-100">
+                <span className="text-[#64748B] block text-[10px] uppercase">
+                  {language === 'hi' ? 'भुगतान स्थिति' : 'Payment Status'}
+                </span>
+                <strong className="text-emerald-700 font-semibold text-xs">
+                  {proc.paymentStatus || 'Queued'}
+                </strong>
+              </div>
+            </div>
+          </Card>
+        </section>
+      )}
+
+      {/* 6. Produce Summary & DBT Payment Overview (2 Columns) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Produce Summary */}
+        <Card className="p-5 sm:p-6 space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-[#17201A]">
+                    {t('registerProduce')}
+                  </h3>
+                  <p className="text-xs text-[#64748B]">
+                    {language === 'hi'
+                      ? 'एमएसपी खरीद के लिए पंजीकृत फसलें'
+                      : 'Registered crops & MSP rates'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/farmer/produce')}
+                className="text-xs py-1.5 px-3"
+              >
+                + {language === 'hi' ? 'फसल जोड़ें' : 'Add Crop'}
+              </Button>
+            </div>
+
+            {profile?.produce && profile.produce.length > 0 ? (
+              <div className="space-y-2.5">
+                {profile.produce.slice(0, 3).map((crop: any) => (
+                  <div
+                    key={crop.id}
+                    className="p-3 rounded-2xl bg-gray-50/80 border border-gray-200/60 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl" role="img" aria-label="Crop">
+                        {getCropEmoji(crop.type)}
+                      </span>
+                      <div>
+                        <p className="font-bold text-sm text-[#17201A]">
+                          {crop.type}
+                        </p>
+                        <p className="text-xs text-[#64748B]">
+                          {crop.quantity} {crop.unit || 'Quintals'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-[#F0FDF4] text-[#16A34A] border border-green-200">
+                        ₹{crop.mspRate || 2275} / qt
+                      </span>
+                      <p className="text-[10px] text-[#64748B] mt-0.5">Govt MSP</p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-green-600">₹{p.mspRate}/qt</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-6">
-              <Package className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">{t('noData')}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Notifications */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                <Bell className="w-4 h-4 text-blue-600" />
+                ))}
               </div>
-              <h3 className="font-bold text-gray-800">{t('notifications')}</h3>
-              {unreadCount > 0 && <span className="badge bg-red-100 text-red-700 text-[10px]">{unreadCount} new</span>}
-            </div>
-            <button onClick={() => navigate('/farmer/notifications')} className="text-sm text-green-600 font-semibold">{t('view')}</button>
+            ) : (
+              <EmptyState
+                compact
+                icon={<Sprout className="w-6 h-6 text-[#16A34A]" />}
+                title={
+                  language === 'hi'
+                    ? 'कोई फसल दर्ज नहीं है'
+                    : 'No Harvest Registered Yet'
+                }
+                description={
+                  language === 'hi'
+                    ? 'स्लॉट बुक करने के लिए पहले अपनी फसल और अनुमानित मात्रा जोड़ें।'
+                    : 'Declare your harvest quantity to become eligible for guaranteed MSP procurement.'
+                }
+                action={{
+                  label: language === 'hi' ? 'फसल जोड़ें' : 'Register Produce',
+                  onClick: () => navigate('/farmer/produce'),
+                }}
+              />
+            )}
           </div>
-          {notifications.length > 0 ? (
-            <div className="space-y-2">
-              {notifications.map((n: any) => (
-                <div key={n.id} className={`flex items-start gap-3 py-2.5 px-3 rounded-xl transition-colors ${!n.read ? 'bg-blue-50/60 border border-blue-100/50' : 'bg-gray-50/50'}`}>
-                  <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${!n.read ? 'bg-blue-500' : 'bg-gray-300'}`} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-700 truncate">{language === 'hi' ? n.titleHi : n.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{language === 'hi' ? n.messageHi : n.message}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-gray-400">{t('noData')}</p>
-            </div>
+
+          {profile?.produce?.length > 3 && (
+            <button
+              onClick={() => navigate('/farmer/produce')}
+              className="text-xs font-semibold text-[#16A34A] hover:underline pt-2 text-center"
+            >
+              {language === 'hi'
+                ? `सभी ${profile.produce.length} फसलें देखें`
+                : `View all ${profile.produce.length} registered crops`}
+            </button>
           )}
-        </div>
+        </Card>
+
+        {/* DBT Payment Status / Recent Activity */}
+        <Card className="p-5 sm:p-6 space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-[#17201A]">
+                    {language === 'hi' ? 'डीबीटी भुगतान' : 'DBT Bank Transfer'}
+                  </h3>
+                  <p className="text-xs text-[#64748B]">
+                    {language === 'hi'
+                      ? 'सीधा बैंक खाता अंतरण'
+                      : 'Direct bank account credit'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/farmer/payment')}
+                rightIcon={<ChevronRight className="w-4 h-4 text-[#16A34A]" />}
+                className="text-xs text-[#16A34A]"
+              >
+                {t('view')}
+              </Button>
+            </div>
+
+            {payment ? (
+              <div className="rounded-2xl bg-gradient-to-br from-emerald-50/70 to-blue-50/50 border border-green-200/80 p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#64748B] tracking-wider">
+                      {language === 'hi' ? 'शुद्ध भुगतान राशि' : 'Net Disbursed Amount'}
+                    </span>
+                    <p className="text-3xl font-extrabold text-[#14532D] tracking-tight">
+                      ₹{payment.netAmount?.toLocaleString('en-IN') || '0'}
+                    </p>
+                  </div>
+                  <StatusBadge
+                    status={payment.status || 'COMPLETED'}
+                    language={language}
+                    size="sm"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between text-xs text-[#64748B]">
+                  <span>{t('dbtReference')}:</span>
+                  <span className="font-mono font-bold text-[#17201A] bg-white px-2 py-0.5 rounded-lg border border-gray-200">
+                    {payment.dbtReferenceId || 'DBT-GOV-98421'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-gray-50 border border-gray-200/70 p-4 text-center space-y-1.5">
+                <CheckCircle2 className="w-7 h-7 text-gray-400 mx-auto" />
+                <p className="font-semibold text-xs text-[#17201A]">
+                  {language === 'hi' ? 'कोई बकाया भुगतान नहीं' : 'No Pending DBT Payments'}
+                </p>
+                <p className="text-[11px] text-[#64748B]">
+                  {language === 'hi'
+                    ? 'खरीद पूरी होने के 48 घंटों के भीतर भुगतान सीधे आपके बैंक खाते में जमा किया जाता है।'
+                    : 'Payment is credited directly to your Aadhaar-linked bank account within 48 hours of mandi weighment.'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+            <span className="text-[#64748B]">
+              {language === 'hi' ? 'सरकारी गारंटी' : 'Government Guarantee'}:
+            </span>
+            <span className="font-semibold text-[#16A34A] flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5" /> 100% MSP DBT
+            </span>
+          </div>
+        </Card>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200/80 flex justify-around py-2 px-2 z-50 safe-bottom">
-        {[
-          { icon: LayoutDashboard, label: t('home'), path: '/farmer' },
-          { icon: Users, label: t('liveQueue'), path: '/farmer/queue' },
-          { icon: Ticket, label: t('myToken'), path: '/farmer/token' },
-          { icon: TrendingUp, label: t('status'), path: '/farmer/procurement' },
-          { icon: User, label: t('profile'), path: '/farmer/profile' },
-        ].map(({ icon: Icon, label, path }) => {
-          const isActive = location.pathname === path;
-          return (
-            <button key={path} onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-0.5 min-w-[52px] py-1.5 px-2 rounded-xl transition-all duration-200 ${isActive ? 'text-green-600 bg-green-50' : 'text-gray-400 hover:text-gray-600'}`}>
-              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
-              <span className={`text-[10px] ${isActive ? 'font-semibold' : 'font-medium'}`}>{label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {/* 7. Recent Notifications / Activity Log */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <SectionHeader
+            title={t('notifications')}
+            description={
+              language === 'hi'
+                ? 'खरीद और भुगतान संबंधी हालिया सूचनाएं'
+                : 'Recent alerts regarding procurement, queue, and payments'
+            }
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/farmer/notifications')}
+            rightIcon={<ChevronRight className="w-4 h-4 text-[#16A34A]" />}
+            className="text-xs text-[#16A34A]"
+          >
+            {language === 'hi' ? 'सभी देखें' : 'View All'}
+          </Button>
+        </div>
+
+        {notifications.length > 0 ? (
+          <div className="space-y-2.5">
+            {notifications.slice(0, 3).map((notif: any) => (
+              <div
+                key={notif.id}
+                onClick={() => navigate('/farmer/notifications')}
+                className={`cursor-pointer p-3.5 rounded-2xl border transition-all duration-150 flex items-start gap-3 hover:shadow-2xs ${
+                  !notif.read
+                    ? 'bg-emerald-50/60 border-emerald-200/80'
+                    : 'bg-white border-gray-200/70 hover:bg-gray-50'
+                }`}
+              >
+                <div
+                  className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
+                    !notif.read ? 'bg-[#16A34A] ring-4 ring-green-100' : 'bg-gray-300'
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold text-xs sm:text-sm text-[#17201A] truncate">
+                      {language === 'hi' ? notif.titleHi : notif.title}
+                    </p>
+                    {notif.createdAt && (
+                      <span className="text-[10px] text-[#64748B] shrink-0">
+                        {new Date(notif.createdAt).toLocaleDateString('en-IN', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#64748B] mt-0.5 line-clamp-1">
+                    {language === 'hi' ? notif.messageHi : notif.message}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            compact
+            bordered
+            icon={<Bell className="w-6 h-6 text-gray-400" />}
+            title={language === 'hi' ? 'कोई सूचना नहीं' : 'No Notifications'}
+            description={
+              language === 'hi'
+                ? 'जब आपकी खरीद या भुगतान की स्थिति बदलेगी, यहां अपडेट दिखाई देगा।'
+                : 'You are all caught up! Updates regarding your token, queue, and payments will appear here.'
+            }
+          />
+        )}
+      </section>
     </div>
   );
 }

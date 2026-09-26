@@ -1,0 +1,414 @@
+[
+  {
+    "page": "Officer: Officer Dashboard & Console",
+    "viewport": "360x800",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "10 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Secondary Metrics",
+            "width": 119,
+            "height": 16
+          },
+          {
+            "text": "History",
+            "width": 63,
+            "height": 26
+          },
+          {
+            "text": "History",
+            "width": 63,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Officer: Officer Dashboard & Console",
+    "viewport": "390x844",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "11 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Secondary Metrics",
+            "width": 119,
+            "height": 16
+          },
+          {
+            "text": "History",
+            "width": 63,
+            "height": 26
+          },
+          {
+            "text": "History",
+            "width": 63,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Officer: Officer Dashboard & Console",
+    "viewport": "430x932",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "11 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Secondary Metrics",
+            "width": 119,
+            "height": 16
+          },
+          {
+            "text": "History",
+            "width": 63,
+            "height": 26
+          },
+          {
+            "text": "History",
+            "width": 63,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Officer: Procurement Workbench",
+    "viewport": "360x800",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "unlabeled button",
+            "width": 20,
+            "height": 20
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Officer: Procurement Workbench",
+    "viewport": "390x844",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "unlabeled button",
+            "width": 20,
+            "height": 20
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Officer: Procurement Workbench",
+    "viewport": "430x932",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "unlabeled button",
+            "width": 20,
+            "height": 20
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Command Centre Dashboard",
+    "viewport": "430x932",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "8 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          },
+          {
+            "text": "1x",
+            "width": 28,
+            "height": 24
+          },
+          {
+            "text": "2x",
+            "width": 28,
+            "height": 24
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Centre Monitoring",
+    "viewport": "360x800",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Centre Monitoring",
+    "viewport": "390x844",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Centre Monitoring",
+    "viewport": "430x932",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Payment Monitoring",
+    "viewport": "360x800",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "6 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          },
+          {
+            "text": "Disburse",
+            "width": 72,
+            "height": 24
+          },
+          {
+            "text": "Disburse",
+            "width": 72,
+            "height": 24
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Payment Monitoring",
+    "viewport": "390x844",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "6 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          },
+          {
+            "text": "Disburse",
+            "width": 72,
+            "height": 24
+          },
+          {
+            "text": "Disburse",
+            "width": 72,
+            "height": 24
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Payment Monitoring",
+    "viewport": "430x932",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "6 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          },
+          {
+            "text": "Disburse",
+            "width": 72,
+            "height": 24
+          },
+          {
+            "text": "Disburse",
+            "width": 72,
+            "height": 24
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: State Analytics",
+    "viewport": "360x800",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: State Analytics",
+    "viewport": "390x844",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: State Analytics",
+    "viewport": "430x932",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Executive Reports",
+    "viewport": "360x800",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Executive Reports",
+    "viewport": "390x844",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "page": "Admin: Executive Reports",
+    "viewport": "430x932",
+    "issues": [
+      {
+        "type": "SMALL_BUTTONS_MOBILE",
+        "severity": "LOW",
+        "message": "1 interactive elements have touch targets under 28px",
+        "sample": [
+          {
+            "text": "Demo",
+            "width": 72,
+            "height": 26
+          }
+        ]
+      }
+    ]
+  }
+]

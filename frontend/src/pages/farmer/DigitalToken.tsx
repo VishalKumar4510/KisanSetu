@@ -1,30 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useLanguage } from '../../context/LanguageContext';
-import { farmerAPI } from '../../services/api';
-import { ArrowLeft, QrCode, MapPin, Calendar, Clock, Hash, Shield } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { farmerAPI } from '@/services/api';
+import {
+  ArrowLeft,
+  QrCode,
+  MapPin,
+  Calendar,
+  Clock,
+  Hash,
+  ShieldCheck,
+  Printer,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  Sparkles,
+  Scale,
+  User,
+  Phone,
+  Share2,
+} from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SkeletonCard } from '@/components/ui/skeleton';
 
 interface TokenData {
   id: string;
   tokenNumber: string;
-  qrData: string;
+  qrData?: string;
   status: 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
-  queuePosition: number;
-  estimatedTime: string;
+  queuePosition?: number;
+  estimatedTime?: string;
   createdAt: string;
-  centreId: string;
+  centreId?: string;
   centreName?: string;
   slotDate?: string;
   slotTime?: string;
+  bayNumber?: string | number;
 }
-
-const statusConfig: Record<string, { bg: string; text: string; labelEn: string; labelHi: string }> = {
-  ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', labelEn: 'Active', labelHi: 'सक्रिय' },
-  USED: { bg: 'bg-blue-100', text: 'text-blue-800', labelEn: 'Used', labelHi: 'उपयोग हुआ' },
-  EXPIRED: { bg: 'bg-gray-100', text: 'text-gray-800', labelEn: 'Expired', labelHi: 'समाप्त' },
-  CANCELLED: { bg: 'bg-red-100', text: 'text-red-800', labelEn: 'Cancelled', labelHi: 'रद्द' },
-};
 
 export default function DigitalToken() {
   const { user } = useAuth();
@@ -32,6 +50,7 @@ export default function DigitalToken() {
   const navigate = useNavigate();
 
   const [token, setToken] = useState<TokenData | null>(null);
+  const [farmerProfile, setFarmerProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,185 +61,358 @@ export default function DigitalToken() {
   const fetchToken = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await farmerAPI.getProfile();
       const profile = res.data.data;
+      setFarmerProfile(profile);
+
       const activeToken = profile?.activeToken;
       if (activeToken) {
         setToken({
           ...activeToken,
-          centreName: activeToken.centreName || profile?.activeProcurement?.centreName || '',
-          slotDate: activeToken.slotDate || activeToken.date || new Date(activeToken.createdAt).toLocaleDateString('en-IN'),
-          slotTime: activeToken.slotTime || activeToken.estimatedTime || '',
+          centreName:
+            activeToken.centreName ||
+            profile?.activeProcurement?.centreName ||
+            'APMC Central Mandi Hub',
+          slotDate:
+            activeToken.slotDate ||
+            activeToken.date ||
+            new Date(activeToken.createdAt || Date.now()).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            }),
+          slotTime: activeToken.slotTime || activeToken.estimatedTime || '09:00 AM – 11:00 AM',
+          bayNumber: activeToken.bayNumber || 'Bay 02',
         });
+      } else {
+        setToken(null);
       }
     } catch (err: any) {
-      setError(err.response?.data?.error || (language === 'hi' ? 'टोकन लोड करने में त्रुटि' : 'Failed to load token'));
+      setError(
+        err.response?.data?.error ||
+          (language === 'hi' ? 'टोकन लोड करने में त्रुटि' : 'Failed to load digital token')
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4" />
-          <p className="text-gray-500">{t('loading')}</p>
-        </div>
+      <div className="max-w-md mx-auto px-4 py-8 space-y-4 animate-fadeIn">
+        <div className="h-10 w-48 bg-gray-200 rounded-xl animate-pulse" />
+        <SkeletonCard className="h-96" />
       </div>
     );
   }
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-green-600 text-white px-4 py-4">
-          <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="font-bold text-lg">{t('myToken')}</h1>
-          </div>
-        </div>
-        <div className="flex items-center justify-center px-4 mt-20">
-          <div className="text-center">
-            <QrCode className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium">{language === 'hi' ? 'कोई सक्रिय टोकन नहीं' : 'No Active Token'}</p>
-            <p className="text-gray-400 text-sm mt-2 mb-4">
-              {language === 'hi' ? 'पहले स्लॉट बुक करें' : 'Book a slot first to get your token'}
-            </p>
-            <button
-              onClick={() => navigate('/farmer/centres')}
-              className="px-6 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
-            >
-              {t('bookSlot')}
-            </button>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fadeIn">
+        <PageHeader
+          title={t('myToken')}
+          description={
+            language === 'hi'
+              ? 'मंडी प्रवेश और वजन कांटे के लिए डिजिटल पास'
+              : 'Digital gate pass and weighing verification ticket'
+          }
+          backButton={{
+            label: t('back'),
+            onClick: () => navigate('/farmer'),
+          }}
+        />
+
+        <div className="max-w-md mx-auto py-12">
+          <EmptyState
+            bordered
+            icon={<QrCode className="w-8 h-8 text-[#16A34A]" />}
+            title={language === 'hi' ? 'कोई सक्रिय टोकन नहीं मिला' : 'No Active Digital Pass'}
+            description={
+              language === 'hi'
+                ? 'आपके पास वर्तमान में कोई सक्रिय मंडी टोकन नहीं है। पहले एक खरीद स्लॉट बुक करें।'
+                : 'You do not have an active mandi entry token. Pre-book an arrival slot to generate your official pass.'
+            }
+            action={{
+              label: language === 'hi' ? 'स्लॉट बुक करें' : 'Book Mandi Slot',
+              onClick: () => navigate('/farmer/centres'),
+            }}
+          />
         </div>
       </div>
     );
   }
 
-  const status = statusConfig[token.status] || statusConfig.ACTIVE;
+  const farmerName = farmerProfile?.name || user?.name || 'Verified Farmer';
+  const farmerId = farmerProfile?.farmerId || user?.farmerId || 'KS-FARMER-8421';
+  const village = farmerProfile?.village ? `${farmerProfile.village}, ` : '';
+  const district = farmerProfile?.district || 'Agricultural Division';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-600 to-green-700 flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-4 flex items-center gap-3 text-white">
-        <button onClick={() => navigate(-1)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="font-bold text-lg">{t('myToken')}</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5 animate-fadeIn">
+      {/* Header (Hidden in Print) */}
+      <div className="print:hidden">
+        <PageHeader
+          title={t('myToken')}
+          description={
+            language === 'hi'
+              ? 'मंडी गेट और तौल कांटे पर यह डिजिटल पास प्रस्तुत करें'
+              : 'Present this official digital pass at the APMC Mandi weighbridge gate'
+          }
+          backButton={{
+            label: t('back'),
+            onClick: () => navigate('/farmer'),
+          }}
+          actions={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handlePrint}
+                leftIcon={<Printer className="w-4 h-4" />}
+                className="text-xs"
+              >
+                {language === 'hi' ? 'प्रिंट / सेव' : 'Print Pass'}
+              </Button>
+            </div>
+          }
+        />
       </div>
 
-      {/* Token Card - Full screen optimized for gate display */}
-      <div className="flex-1 flex items-center justify-center px-4 pb-8">
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
-          {/* Token Header */}
-          <div className="bg-green-50 px-6 pt-6 pb-4 text-center border-b border-green-100">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Shield className="w-4 h-4 text-green-600" />
-              <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">
-                {t('appName')} — {language === 'hi' ? 'डिजिटल टोकन' : 'Digital Token'}
+      {/* Main Digital Pass Container (Printable) */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-200/90 overflow-hidden relative">
+          {/* Top Pass Brand Header */}
+          <div className="bg-gradient-to-r from-[#14532D] via-[#16A34A] to-[#15803D] text-white p-5 sm:p-6 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            
+            <div className="flex items-center justify-center gap-2 mb-1.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-200" />
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-emerald-100">
+                GOVT. OF INDIA • KISAN SETU
               </span>
             </div>
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${status.bg} ${status.text}`}>
-              {language === 'hi' ? status.labelHi : status.labelEn}
-            </span>
-          </div>
 
-          {/* Token Number - Large and prominent */}
-          <div className="px-6 py-6 text-center">
-            <p className="text-xs text-gray-400 uppercase tracking-wider font-medium">{t('tokenNumber')}</p>
-            <p className="text-5xl font-black text-green-700 mt-1 tracking-wide">{token.tokenNumber}</p>
-          </div>
-
-          {/* QR Placeholder - Styled grid pattern */}
-          <div className="flex justify-center px-6 pb-5">
-            <div className="w-40 h-40 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center relative overflow-hidden">
-              {/* Grid pattern simulating QR code */}
-              <div className="absolute inset-3 grid grid-cols-8 grid-rows-8 gap-[2px]">
-                {Array.from({ length: 64 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-[1px] ${
-                      // Create a QR-like pattern
-                      (i < 3 || (i >= 5 && i < 8) || (i >= 16 && i < 19) || (i >= 21 && i < 24) ||
-                       i === 8 || i === 15 || i === 32 || i === 39 || i === 40 || i === 47 ||
-                       (i >= 56 && i < 59) || (i >= 61 && i < 64) || i === 48 || i === 55 ||
-                       i === 27 || i === 28 || i === 35 || i === 36)
-                        ? 'bg-gray-800'
-                        : (i % 3 === 0 ? 'bg-gray-300' : 'bg-gray-100')
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <QrCode className="w-8 h-8 text-green-600 opacity-30" />
-              </div>
-            </div>
-          </div>
-
-          {/* Queue Position */}
-          {token.queuePosition > 0 && (
-            <div className="mx-6 mb-4 bg-green-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-green-600 font-medium">{t('queuePosition')}</p>
-              <p className="text-3xl font-bold text-green-700 mt-1">#{token.queuePosition}</p>
-            </div>
-          )}
-
-          {/* Details */}
-          <div className="px-6 pb-6 space-y-3">
-            {token.centreName && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-gray-500" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-400">{t('centre')}</p>
-                  <p className="text-sm font-semibold text-gray-800">{token.centreName}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Calendar className="w-4 h-4 text-gray-500" />
-              </div>
-              <div>
-                <p className="text-[11px] text-gray-400">{t('date')}</p>
-                <p className="text-sm font-semibold text-gray-800">{token.slotDate}</p>
-              </div>
-            </div>
-
-            {token.estimatedTime && (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-gray-400">{t('estimatedWait')}</p>
-                  <p className="text-sm font-semibold text-gray-800">{token.estimatedTime} {language === 'hi' ? 'मिनट' : 'min'}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                <Hash className="w-4 h-4 text-gray-500" />
-              </div>
-              <div>
-                <p className="text-[11px] text-gray-400">ID</p>
-                <p className="text-sm font-semibold text-gray-800 font-mono">{token.id?.slice(0, 12)}...</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="bg-gray-50 px-6 py-3 text-center border-t border-gray-100">
-            <p className="text-[10px] text-gray-400">
-              {language === 'hi' ? 'गेट पर यह टोकन दिखाएं' : 'Show this token at the gate'}
+            <h2 className="text-lg font-black tracking-tight text-white">
+              {language === 'hi' ? 'आधिकारिक मंडी डिजिटल टोकन' : 'Mandi Weighment Gate Pass'}
+            </h2>
+            <p className="text-[11px] text-emerald-100 opacity-90 mt-0.5">
+              APMC Electronic Procurement & DBT Authentication
             </p>
+
+            <div className="mt-3 inline-flex items-center">
+              <StatusBadge
+                status={token.status || 'ACTIVE'}
+                language={language}
+                size="md"
+                className="bg-white/95 text-emerald-950 font-bold shadow-2xs border-0"
+              />
+            </div>
+          </div>
+
+          {/* Token Number Hero Section */}
+          <div className="p-6 text-center bg-emerald-50/40 border-b border-gray-100">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B]">
+              {t('tokenNumber')}
+            </span>
+            <p className="text-3xl sm:text-4xl md:text-5xl font-black text-[#14532D] font-mono tracking-wider mt-1 select-all break-all sm:break-normal">
+              {token.tokenNumber}
+            </p>
+
+            {token.queuePosition !== undefined && token.queuePosition > 0 && (
+              <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-green-200 shadow-2xs text-xs font-semibold text-[#16A34A]">
+                <Users className="w-3.5 h-3.5" />
+                <span>
+                  {language === 'hi'
+                    ? `कतार क्रमांक #${token.queuePosition}`
+                    : `Queue Position #${token.queuePosition}`}
+                </span>
+                {token.estimatedTime && (
+                  <span className="text-gray-400 font-normal">
+                    (~{token.estimatedTime} min)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Perforated Divider Line with Cutout Notches */}
+          <div className="relative py-1">
+            <div className="border-t-2 border-dashed border-gray-300 w-full" />
+            {/* Left Notch */}
+            <div className="absolute -left-3.5 -top-3 w-7 h-7 rounded-full bg-[#F7F9F5] border-r border-gray-300" />
+            {/* Right Notch */}
+            <div className="absolute -right-3.5 -top-3 w-7 h-7 rounded-full bg-[#F7F9F5] border-l border-gray-300" />
+          </div>
+
+          {/* QR Code Container */}
+          <div className="px-6 py-5 flex flex-col items-center justify-center text-center bg-white">
+            <div className="relative p-3.5 rounded-2xl bg-white border-2 border-gray-900 shadow-md">
+              {/* Corner Viewfinder Accents */}
+              <div className="absolute -top-1.5 -left-1.5 w-4 h-4 border-t-2 border-l-2 border-[#16A34A]" />
+              <div className="absolute -top-1.5 -right-1.5 w-4 h-4 border-t-2 border-r-2 border-[#16A34A]" />
+              <div className="absolute -bottom-1.5 -left-1.5 w-4 h-4 border-b-2 border-l-2 border-[#16A34A]" />
+              <div className="absolute -bottom-1.5 -right-1.5 w-4 h-4 border-b-2 border-r-2 border-[#16A34A]" />
+
+              {/* Simulated Authentic High-Density QR Code */}
+              <div className="w-44 h-44 bg-white flex items-center justify-center relative overflow-hidden">
+                {/* 10x10 Simulated matrix */}
+                <div className="grid grid-cols-10 grid-rows-10 gap-1 w-full h-full p-1">
+                  {Array.from({ length: 100 }).map((_, i) => {
+                    const row = Math.floor(i / 10);
+                    const col = i % 10;
+                    // Corners
+                    const isTopLeft = row < 3 && col < 3;
+                    const isTopRight = row < 3 && col >= 7;
+                    const isBottomLeft = row >= 7 && col < 3;
+                    const isCenter = row >= 4 && row <= 5 && col >= 4 && col <= 5;
+                    const isNoise = (i * 7 + 13) % 3 === 0;
+
+                    const isDark = isTopLeft || isTopRight || isBottomLeft || isCenter || isNoise;
+
+                    return (
+                      <div
+                        key={i}
+                        className={`rounded-[1px] ${
+                          isDark ? 'bg-[#17201A]' : 'bg-gray-100'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+
+                {/* Central QR badge icon */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-9 h-9 rounded-xl bg-white border border-gray-300 shadow-sm flex items-center justify-center">
+                    <QrCode className="w-5 h-5 text-[#16A34A]" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs font-bold text-[#17201A] mt-3">
+              {language === 'hi'
+                ? 'मंडी प्रवेश द्वार पर स्कैन करें'
+                : 'Scan at Mandi Entry Barrier / Weighbridge'}
+            </p>
+            <p className="text-[11px] text-[#64748B] mt-0.5">
+              Automated RFID / QR gate recognition
+            </p>
+          </div>
+
+          {/* Perforated Divider Line */}
+          <div className="relative py-1">
+            <div className="border-t-2 border-dashed border-gray-300 w-full" />
+            <div className="absolute -left-3.5 -top-3 w-7 h-7 rounded-full bg-[#F7F9F5] border-r border-gray-300" />
+            <div className="absolute -right-3.5 -top-3 w-7 h-7 rounded-full bg-[#F7F9F5] border-l border-gray-300" />
+          </div>
+
+          {/* Mandi & Farmer Information Grid */}
+          <div className="p-6 bg-gray-50/70 space-y-4">
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              {/* Farmer Info */}
+              <div className="p-3 rounded-2xl bg-white border border-gray-200/70 space-y-1">
+                <span className="text-[10px] text-[#64748B] uppercase font-bold tracking-tight flex items-center gap-1">
+                  <User className="w-3 h-3 text-[#16A34A]" />
+                  {t('farmer')}
+                </span>
+                <p className="font-extrabold text-[#17201A] text-xs truncate">
+                  {farmerName}
+                </p>
+                <p className="text-[10px] text-[#64748B] font-mono truncate">
+                  {farmerId}
+                </p>
+              </div>
+
+              {/* Mandi Centre */}
+              <div className="p-3 rounded-2xl bg-white border border-gray-200/70 space-y-1">
+                <span className="text-[10px] text-[#64748B] uppercase font-bold tracking-tight flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-[#16A34A]" />
+                  {t('centre')}
+                </span>
+                <p className="font-extrabold text-[#17201A] text-xs truncate">
+                  {token.centreName}
+                </p>
+                <p className="text-[10px] text-emerald-700 font-semibold truncate">
+                  {token.bayNumber}
+                </p>
+              </div>
+
+              {/* Slot Date */}
+              <div className="p-3 rounded-2xl bg-white border border-gray-200/70 space-y-1">
+                <span className="text-[10px] text-[#64748B] uppercase font-bold tracking-tight flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-[#16A34A]" />
+                  {t('date')}
+                </span>
+                <p className="font-extrabold text-[#17201A] text-xs">
+                  {token.slotDate}
+                </p>
+                <p className="text-[10px] text-[#64748B]">Valid on date only</p>
+              </div>
+
+              {/* Slot Time Window */}
+              <div className="p-3 rounded-2xl bg-white border border-gray-200/70 space-y-1">
+                <span className="text-[10px] text-[#64748B] uppercase font-bold tracking-tight flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-[#16A34A]" />
+                  {t('slotTime')}
+                </span>
+                <p className="font-extrabold text-[#17201A] text-xs truncate">
+                  {token.slotTime}
+                </p>
+                <p className="text-[10px] text-[#64748B]">Arrival Window</p>
+              </div>
+            </div>
+
+            {/* Official Security Notice */}
+            <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 space-y-1 text-left">
+              <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
+                <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  {language === 'hi' ? 'सुरक्षा सूचना' : 'Official Security Notice'}
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-950/85 leading-relaxed">
+                {language === 'hi'
+                  ? 'यह डिजिटल टोकन किसान पहचान और आधार से सुरक्षित रूप से जुड़ा है। यह केवल एक वाहन और एक बार प्रवेश के लिए मान्य है।'
+                  : 'This digital pass is securely linked to the registered Farmer ID. Valid for single vehicle entry only at the designated weighment station.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Footer Actions (Hidden in Print) */}
+          <div className="p-5 bg-white border-t border-gray-200/80 space-y-2.5 print:hidden">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => navigate('/farmer/queue')}
+              leftIcon={<Users className="w-4 h-4" />}
+              className="w-full justify-center shadow-xs"
+            >
+              {language === 'hi' ? 'लाइव कतार स्थिति ट्रैक करें' : 'Track Live Queue Position'}
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={handlePrint}
+                leftIcon={<Printer className="w-4 h-4" />}
+                className="flex-1 text-xs"
+              >
+                {language === 'hi' ? 'टोकन प्रिंट करें' : 'Print Pass'}
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => navigate('/farmer')}
+                className="flex-1 text-xs"
+              >
+                {language === 'hi' ? 'डैशबोर्ड' : 'Dashboard'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

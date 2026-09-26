@@ -47,12 +47,31 @@ function hoursFromNow(h: number): string {
 
 // ==================== DEMO / ADMIN / OFFICER USERS ====================
 
+// Precomputed bcrypt hashes (cost factor = 12) for authentic security and zero-lag startup
+const BCRYPT_ADMIN1 = '$2b$12$Q2Ora9HB/7Tu1XTvxo/ziegTrGoNNIluwPbGBWjTArObufpWELzwq'; // 'admin1'
+const BCRYPT_OFFICER1 = '$2b$12$Ko4Hyd6AAkWj9teXIpZlaOB5Xty1.5519tAyiodAJxMV1V8/jTreO'; // 'officer1'
+const BCRYPT_OFFICER2 = '$2b$12$h38btD1qYz4j4Cev2/Twr.JE4sUu6MxqMV3xUAiQUNi58s1KHgn4K'; // 'officer2'
+
+const BCRYPT_FARMER_HASHES: Record<string, string> = {
+  farmer1: '$2b$12$r6Y3jUQ6wQe3kDkQGhDpn.Wr.tGlt2u0BHOUEB8tebtashOmIM9Va',
+  farmer2: '$2b$12$vJqTbpfi.7HE/Wn6cDc/pONrAWdhEF3mUOp177oCjtkEQxab.b8Pi',
+  farmer3: '$2b$12$jgVwPvJOVnnClkO7mXkIIeC.HQLlyRUnT0FjFTHiLWl24aGx.fRcC',
+  farmer4: '$2b$12$14WLzZm4Lt4M/3ZO5NW2LuTY83YKNpLrAkLaoqetfrouRt6R6Fw1W',
+  farmer5: '$2b$12$Y5stZ09.V.IUbZ0nDYUGJeTXpZLUbLuuw.fW5Y9ooHtdMieupL47q',
+  farmer6: '$2b$12$yxO6ApQLOIb7gG2qPARAa.gDjDMFJosq89ImbuIz3CRMhwIkhGc3G',
+  farmer7: '$2b$12$jmhKh08/uKOwUExK3e8TeOJkwMz.iftAq5RC1yKqUIjpQmNyTURfG',
+  farmer8: '$2b$12$z8OQI4AFWFWusFgTFr/gUeyel0zrtVLFfxPxlBYWpykA.qw7kzrFy',
+  farmer9: '$2b$12$TD.ZXKKZZE5J/gN.zl5oX.NO0LoptJYpnH8U1sVnHMuMI9/DrjC26',
+  farmer10: '$2b$12$F3ZzQBDjRBikvShwxst.Yefq6R/7FQeCMBoQK1hJ2Wal4CYmRwg52',
+};
+const BCRYPT_DEFAULT_FARMER_HASH = '$2b$12$9GFWQvoh5RlD7A6S2IacIOkzg6mJqJ3OqWAFnZ6fSK/r2xmPiWQAu'; // 'Kisan@123'
+
 export const seedUsers: User[] = [
   {
     id: 'user-admin-001',
     name: 'Admin Sharma',
     phone: 'admin1',
-    password: 'admin1',
+    password: BCRYPT_ADMIN1,
     role: UserRole.ADMIN,
     language: 'en',
     createdAt: daysAgo(180),
@@ -61,7 +80,7 @@ export const seedUsers: User[] = [
     id: 'user-officer-001',
     name: 'Officer Verma',
     phone: 'officer1',
-    password: 'officer1',
+    password: BCRYPT_OFFICER1,
     role: UserRole.OFFICER,
     language: 'en',
     createdAt: daysAgo(120),
@@ -70,7 +89,7 @@ export const seedUsers: User[] = [
     id: 'user-officer-002',
     name: 'Officer Mishra',
     phone: 'officer2',
-    password: 'officer2',
+    password: BCRYPT_OFFICER2,
     role: UserRole.OFFICER,
     language: 'hi',
     createdAt: daysAgo(90),
@@ -203,12 +222,14 @@ const farmerDataList: Array<{
 export const seedFarmers: Farmer[] = farmerDataList.map((f, i) => {
   const idx = String(i + 1).padStart(4, '0');
   const phone = `98${String(10000000 + i * 97 + 11).slice(0, 8)}`;
+  const demoLogin = i < 10 ? `farmer${i + 1}` : phone;
+  const passwordHash = i < 10 ? (BCRYPT_FARMER_HASHES[demoLogin] || BCRYPT_DEFAULT_FARMER_HASH) : BCRYPT_DEFAULT_FARMER_HASH;
   return {
     id: `farmer-${idx}`,
     farmerId: `KS-FARM-${idx}`,
     name: f.name,
-    phone: i === 0 ? 'farmer1' : phone, // first farmer gets demo login
-    password: i === 0 ? 'farmer1' : phone,
+    phone: demoLogin,
+    password: passwordHash,
     role: UserRole.FARMER,
     village: f.village,
     district: f.district,
@@ -217,6 +238,10 @@ export const seedFarmers: Farmer[] = farmerDataList.map((f, i) => {
     crops: f.crops,
     language: f.lang,
     aadhaar: `XXXX-XXXX-${String(1000 + i).slice(0, 4)}`,
+    bankAccount: `•••• •••• •••• ${String(4100 + i * 19).slice(0, 4)}`,
+    ifsc: i % 2 === 0 ? 'SBIN0001234' : 'PUNB0145200',
+    bankName: i % 2 === 0 ? 'State Bank of India' : 'Punjab National Bank',
+    bankVerificationStatus: 'Simulated Banking Verified',
     createdAt: daysAgo(180 - i),
   };
 });
@@ -344,10 +369,14 @@ for (let dayOffset = 0; dayOffset <= 3; dayOffset++) {
   }
 }
 
-// ==================== TOKENS (20+ active) ====================
+// ==================== TOKENS (25+ active) ====================
 
 export const seedTokens: Token[] = [];
-const activeTokenFarmers = seedFarmers.slice(0, 25);
+// farmer1 (seedFarmers[0], Rajesh Kumar) starts with NO active booking/token
+// We use 30 farmers from index 1 to 30 (out of 110 farmers)
+const activeTokenFarmers = seedFarmers.slice(1, 31);
+const centreQueueCounters: Record<string, number> = {};
+
 for (let i = 0; i < activeTokenFarmers.length; i++) {
   const farmer = activeTokenFarmers[i];
   // assign to centre based on state
@@ -361,7 +390,9 @@ for (let i = 0; i < activeTokenFarmers.length; i++) {
   const slot = centreSlots[i % centreSlots.length] || centreSlots[0];
   if (!slot) continue;
 
-  const statusOptions: Array<'ACTIVE' | 'USED'> = i < 20 ? ['ACTIVE'] : ['USED'];
+  centreQueueCounters[centreId] = (centreQueueCounters[centreId] || 0) + 1;
+  const isActionActive = i < 25; // 25 active tokens across centres
+
   seedTokens.push({
     id: `token-${String(i + 1).padStart(4, '0')}`,
     farmerId: farmer.id,
@@ -369,9 +400,9 @@ for (let i = 0; i < activeTokenFarmers.length; i++) {
     centreId,
     tokenNumber: `TKN-${centreId.split('-')[1]}-${String(i + 1).padStart(3, '0')}`,
     qrData: JSON.stringify({ tokenId: `token-${String(i + 1).padStart(4, '0')}`, farmerId: farmer.id, centreId }),
-    status: statusOptions[0],
-    queuePosition: i < 20 ? i + 1 : 0,
-    estimatedTime: hoursFromNow(Math.floor(i * 0.5)),
+    status: isActionActive ? 'ACTIVE' : 'USED',
+    queuePosition: isActionActive ? centreQueueCounters[centreId] : 0,
+    estimatedTime: `${Math.max(5, (centreQueueCounters[centreId] || 1) * 6)}`,
     createdAt: daysAgo(0),
   });
 }
@@ -391,10 +422,11 @@ const procurementStatuses: ProcurementStatus[] = [
 ];
 
 export const seedProcurements: Procurement[] = [];
-for (let i = 0; i < 30; i++) {
-  const farmer = seedFarmers[i];
-  const token = seedTokens[i] || seedTokens[0];
-  const produce = seedProduce[i] || seedProduce[0];
+for (let i = 0; i < seedTokens.length; i++) {
+  const token = seedTokens[i];
+  const farmer = activeTokenFarmers[i];
+  // seedProduce has 50 items, so i + 1 (1..30) is always safely in-bounds
+  const produce = seedProduce[i + 1] || seedProduce[1];
   const status = i < 5 ? ProcurementStatus.BOOKED
     : i < 8 ? ProcurementStatus.ARRIVED
     : i < 10 ? ProcurementStatus.GATE_ENTRY
@@ -402,7 +434,7 @@ for (let i = 0; i < 30; i++) {
     : i < 16 ? ProcurementStatus.QUALITY_CHECK
     : i < 18 ? ProcurementStatus.PROCUREMENT
     : i < 20 ? ProcurementStatus.PAYMENT_PENDING
-    : i < 23 ? ProcurementStatus.PAYMENT_PROCESSING
+    : i < 24 ? ProcurementStatus.PAYMENT_PROCESSING
     : ProcurementStatus.COMPLETED;
 
   const now = new Date();
@@ -434,9 +466,9 @@ for (let i = 0; i < 30; i++) {
 // ==================== PAYMENTS (20+) ====================
 
 export const seedPayments: Payment[] = [];
-for (let i = 0; i < 25; i++) {
+for (let i = 0; i < Math.min(25, seedProcurements.length); i++) {
   const proc = seedProcurements[i];
-  const produce = seedProduce[i] || seedProduce[0];
+  const produce = seedProduce[i + 1] || seedProduce[1];
   const qty = produce.quantity;
   const rate = produce.mspRate;
   const gross = qty * rate;
@@ -456,6 +488,9 @@ for (let i = 0; i < 25; i++) {
     deductions,
     netAmount: net,
     status: pStatus,
+    paymentMethod: 'DBT (Direct Benefit Transfer)',
+    transactionId: `KS-TXN-20260924-${String(1001 + i).padStart(4, '0')}`,
+    utr: `9824${String(10000000 + i * 4921).slice(0, 8)}`,
     dbtReferenceId: pStatus === PaymentStatus.COMPLETED ? `DBT-${Date.now()}-${i}` : undefined,
     processedAt: pStatus === PaymentStatus.COMPLETED ? daysAgo(Math.floor(Math.random() * 5)) : undefined,
     createdAt: proc.bookedAt || daysAgo(1),
@@ -485,7 +520,9 @@ const notifTemplates: Array<{
 
 for (let i = 0; i < 35; i++) {
   const tmpl = notifTemplates[i % notifTemplates.length];
-  const farmer = seedFarmers[i % seedFarmers.length];
+  // Safely index farmers starting from 1 up to seedFarmers.length - 1
+  const farmerIndex = 1 + (i % (seedFarmers.length - 1));
+  const farmer = seedFarmers[farmerIndex];
   seedNotifications.push({
     id: `notif-${String(i + 1).padStart(4, '0')}`,
     userId: farmer.id,

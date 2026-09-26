@@ -20,13 +20,17 @@ export function formatTime(timeStr: string): string {
   return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-export function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+export function formatCurrency(value: number | string): string {
+  return `₹${(Number(value) || 0).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export function getStatusColor(status: ProcurementStatus): string {
   const colors: Record<ProcurementStatus, string> = {
     [ProcurementStatus.BOOKED]: '#2563eb',
+    [ProcurementStatus.CALLED]: '#0284c7',
     [ProcurementStatus.ARRIVED]: '#f59e0b',
     [ProcurementStatus.GATE_ENTRY]: '#ea580c',
     [ProcurementStatus.WEIGHING]: '#7c3aed',
@@ -35,6 +39,7 @@ export function getStatusColor(status: ProcurementStatus): string {
     [ProcurementStatus.PAYMENT_PENDING]: '#d97706',
     [ProcurementStatus.PAYMENT_PROCESSING]: '#0891b2',
     [ProcurementStatus.COMPLETED]: '#059669',
+    [ProcurementStatus.REJECTED]: '#dc2626',
   };
   return colors[status] || '#6b7280';
 }
@@ -59,32 +64,38 @@ export function getCongestionBg(level: CongestionLevel): string {
 
 export function getPaymentStatusColor(status: PaymentStatus): string {
   const colors: Record<PaymentStatus, string> = {
-    [PaymentStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-    [PaymentStatus.PROCESSING]: 'bg-blue-100 text-blue-800',
-    [PaymentStatus.COMPLETED]: 'bg-green-100 text-green-800',
-    [PaymentStatus.FAILED]: 'bg-red-100 text-red-800',
+    [PaymentStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    [PaymentStatus.VALIDATING]: 'bg-blue-100 text-blue-800 border-blue-200',
+    [PaymentStatus.INITIATED]: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    [PaymentStatus.PROCESSING]: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    [PaymentStatus.COMPLETED]: 'bg-green-100 text-green-800 border-green-200',
+    [PaymentStatus.SUCCESS]: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    [PaymentStatus.FAILED]: 'bg-red-100 text-red-800 border-red-200',
   };
-  return colors[status];
+  return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
 }
 
 export function getStatusBadgeClass(status: ProcurementStatus): string {
   const classes: Record<ProcurementStatus, string> = {
-    [ProcurementStatus.BOOKED]: 'bg-blue-100 text-blue-800',
-    [ProcurementStatus.ARRIVED]: 'bg-yellow-100 text-yellow-800',
-    [ProcurementStatus.GATE_ENTRY]: 'bg-orange-100 text-orange-800',
-    [ProcurementStatus.WEIGHING]: 'bg-purple-100 text-purple-800',
-    [ProcurementStatus.QUALITY_CHECK]: 'bg-indigo-100 text-indigo-800',
-    [ProcurementStatus.PROCUREMENT]: 'bg-green-100 text-green-800',
-    [ProcurementStatus.PAYMENT_PENDING]: 'bg-amber-100 text-amber-800',
-    [ProcurementStatus.PAYMENT_PROCESSING]: 'bg-cyan-100 text-cyan-800',
-    [ProcurementStatus.COMPLETED]: 'bg-emerald-100 text-emerald-800',
+    [ProcurementStatus.BOOKED]: 'bg-blue-100 text-blue-800 border-blue-200',
+    [ProcurementStatus.CALLED]: 'bg-sky-100 text-sky-800 border-sky-200',
+    [ProcurementStatus.ARRIVED]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    [ProcurementStatus.GATE_ENTRY]: 'bg-orange-100 text-orange-800 border-orange-200',
+    [ProcurementStatus.WEIGHING]: 'bg-purple-100 text-purple-800 border-purple-200',
+    [ProcurementStatus.QUALITY_CHECK]: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    [ProcurementStatus.PROCUREMENT]: 'bg-green-100 text-green-800 border-green-200',
+    [ProcurementStatus.PAYMENT_PENDING]: 'bg-amber-100 text-amber-800 border-amber-200',
+    [ProcurementStatus.PAYMENT_PROCESSING]: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    [ProcurementStatus.COMPLETED]: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    [ProcurementStatus.REJECTED]: 'bg-red-100 text-red-800 border-red-200',
   };
-  return classes[status] || 'bg-gray-100 text-gray-800';
+  return classes[status] || 'bg-gray-100 text-gray-800 border-gray-200';
 }
 
 export function getStatusLabel(status: ProcurementStatus): string {
   const labels: Record<ProcurementStatus, string> = {
     [ProcurementStatus.BOOKED]: 'Booked',
+    [ProcurementStatus.CALLED]: 'Called',
     [ProcurementStatus.ARRIVED]: 'Arrived',
     [ProcurementStatus.GATE_ENTRY]: 'Gate Entry',
     [ProcurementStatus.WEIGHING]: 'Weighing',
@@ -93,6 +104,7 @@ export function getStatusLabel(status: ProcurementStatus): string {
     [ProcurementStatus.PAYMENT_PENDING]: 'Payment Pending',
     [ProcurementStatus.PAYMENT_PROCESSING]: 'Payment Processing',
     [ProcurementStatus.COMPLETED]: 'Completed',
+    [ProcurementStatus.REJECTED]: 'Rejected',
   };
   return labels[status] || status;
 }
@@ -100,6 +112,7 @@ export function getStatusLabel(status: ProcurementStatus): string {
 export function getStatusLabelHi(status: ProcurementStatus): string {
   const labels: Record<ProcurementStatus, string> = {
     [ProcurementStatus.BOOKED]: 'बुक किया गया',
+    [ProcurementStatus.CALLED]: 'बुलाया गया',
     [ProcurementStatus.ARRIVED]: 'पहुँचा',
     [ProcurementStatus.GATE_ENTRY]: 'गेट प्रवेश',
     [ProcurementStatus.WEIGHING]: 'तौल',
@@ -108,6 +121,7 @@ export function getStatusLabelHi(status: ProcurementStatus): string {
     [ProcurementStatus.PAYMENT_PENDING]: 'भुगतान लंबित',
     [ProcurementStatus.PAYMENT_PROCESSING]: 'भुगतान प्रक्रिया',
     [ProcurementStatus.COMPLETED]: 'पूर्ण',
+    [ProcurementStatus.REJECTED]: 'अस्वीकृत',
   };
   return labels[status] || status;
 }

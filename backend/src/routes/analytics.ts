@@ -1,20 +1,28 @@
 import { Router } from 'express';
 import store from '../data/store';
+import { prisma } from '../lib/prisma';
 import { optionalAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
 import { KPIData, ProcurementStatus, PaymentStatus, CongestionLevel } from '../../../shared/types';
 
 const router = Router();
 
-// GET /api/analytics/kpis
+// GET /api/analytics/kpis - Uses database count aggregations where practical
 router.get('/kpis', optionalAuth, asyncHandler(async (_req, res) => {
+  const [farmersCount, activeQueueCount, completedCount, paymentsCompletedCount] = await Promise.all([
+    prisma.farmer.count().catch(() => store.getAllFarmers().length),
+    prisma.token.count({ where: { status: 'ACTIVE' } }).catch(() => store.getActiveQueueCount()),
+    prisma.procurement.count({ where: { status: 'COMPLETED' } }).catch(() => store.getCompletedToday().length),
+    prisma.payment.count({ where: { status: 'COMPLETED' } }).catch(() => store.getAllPayments().filter(p => p.status === PaymentStatus.COMPLETED).length),
+  ]);
+
   const kpis: KPIData = {
-    farmersRegistered: store.getAllFarmers().length,
+    farmersRegistered: farmersCount,
     todaysBookings: store.getTodaysBookings(),
-    activeQueue: store.getActiveQueueCount(),
+    activeQueue: activeQueueCount,
     avgWaitTime: store.getAvgWaitTime(),
-    completedProcurement: store.getCompletedToday().length,
-    paymentsProcessed: store.getAllPayments().filter(p => p.status === PaymentStatus.COMPLETED).length,
+    completedProcurement: completedCount,
+    paymentsProcessed: paymentsCompletedCount,
   };
   return res.json({ success: true, data: kpis });
 }));
@@ -22,7 +30,7 @@ router.get('/kpis', optionalAuth, asyncHandler(async (_req, res) => {
 // GET /api/analytics/charts/:type
 router.get('/charts/:type', optionalAuth, asyncHandler(async (req, res) => {
   const { type } = req.params;
-  const { period = '7d', centreId } = req.query;
+  const { period = '7d' } = req.query;
 
   let days = 7;
   if (period === 'today') days = 1;

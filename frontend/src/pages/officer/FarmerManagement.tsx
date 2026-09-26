@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../../context/LanguageContext';
 import { farmerAPI } from '../../services/api';
-import { ArrowLeft, Search, User } from 'lucide-react';
+import { ArrowLeft, Search } from 'lucide-react';
+
+import { PageHeader } from '@/components/ui/page-header';
 
 export default function FarmerManagement() {
-  const { t } = useLanguage();
   const navigate = useNavigate();
   const [farmers, setFarmers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
@@ -18,12 +18,13 @@ export default function FarmerManagement() {
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-green-700 text-white px-6 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/officer')}><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="text-xl font-bold">{t('farmerManagement')}</h1>
-      </header>
-      <div className="max-w-6xl mx-auto px-6 py-6 space-y-4">
+    <div className="p-6 max-w-6xl mx-auto space-y-4">
+      <PageHeader
+        title="Farmer Management"
+        description="Directory of registered farmers, landholdings, and verified crop records"
+        showBack
+        backUrl="/officer"
+      />
         <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input className="input-field pl-10" placeholder="Search by name, phone, or farmer ID..." value={search} onChange={e => setSearch(e.target.value)} /></div>
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
@@ -40,10 +41,9 @@ export default function FarmerManagement() {
               </tr>
             ))}</tbody>
           </table>
-          {filtered.length === 0 && <p className="text-center py-8 text-gray-400">{t('noData')}</p>}
+          {filtered.length === 0 && <p className="text-center py-8 text-gray-400">No farmers found matching query</p>}
           <p className="text-xs text-gray-400 mt-3">Showing {Math.min(50, filtered.length)} of {filtered.length} farmers</p>
         </div>
       </div>
-    </div>
   );
 }

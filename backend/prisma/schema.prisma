@@ -1,0 +1,339 @@
+// KisanSetu Database Schema
+// Persistent PostgreSQL data layer with Prisma ORM 7
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ==================== ENUMS ====================
+
+enum Role {
+  FARMER
+  OFFICER
+  ADMIN
+}
+
+enum ProcurementStatus {
+  BOOKED
+  CALLED
+  ARRIVED
+  GATE_ENTRY
+  WEIGHING
+  QUALITY_CHECK
+  PROCUREMENT
+  PAYMENT_PENDING
+  PAYMENT_PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  VALIDATING
+  INITIATED
+  PROCESSING
+  COMPLETED
+  SUCCESS
+  FAILED
+}
+
+enum ProduceType {
+  WHEAT
+  PADDY
+  ONION
+  MAIZE
+  PULSES
+}
+
+enum TokenStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
+enum NotificationType {
+  SLOT_CONFIRMED
+  SLOT_REMINDER
+  QUEUE_APPROACHING
+  QUEUE_DELAY
+  GATE_ENTRY
+  WEIGHING_COMPLETED
+  QUALITY_COMPLETED
+  PROCUREMENT_COMPLETED
+  PAYMENT_PROCESSED
+}
+
+enum CongestionLevel {
+  GREEN
+  YELLOW
+  RED
+}
+
+// ==================== MODELS ====================
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  password  String   // bcrypt hash
+  role      Role     @default(FARMER)
+  aadhaar   String?
+  language  String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  farmerProfile Farmer?
+  notifications Notification[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Farmer {
+  id                     String   @id @default(uuid())
+  farmerId               String   @unique // e.g. "farmer-0001"
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  village                String
+  district               String
+  state                  String
+  landArea               Float
+  crops                  String[] // ProduceType string values
+  bankAccount            String?
+  ifsc                   String?
+  bankName               String?
+  bankVerificationStatus String   @default("VERIFIED")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @default(now()) @updatedAt
+
+  tokens       Token[]
+  procurements Procurement[]
+  payments     Payment[]
+  produces     Produce[]
+
+  @@index([district, state])
+  @@map("farmers")
+}
+
+model Centre {
+  id                  String          @id @default(uuid())
+  name                String
+  location            String
+  district            String
+  state               String
+  capacity            Int
+  activeBays          Int
+  totalBays           Int
+  operatingHoursStart String          @default("08:00")
+  operatingHoursEnd   String          @default("18:00")
+  status              String          @default("ACTIVE")
+  congestionLevel     CongestionLevel @default(GREEN)
+  contactPhone        String
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @default(now()) @updatedAt
+
+  slots        Slot[]
+  tokens       Token[]
+  procurements Procurement[]
+
+  @@index([district, state])
+  @@index([status])
+  @@map("centres")
+}
+
+model Slot {
+  id              String   @id @default(uuid())
+  centreId        String
+  centre          Centre   @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  date            String   // YYYY-MM-DD
+  timeStart       String   // HH:mm
+  timeEnd         String   // HH:mm
+  maxCapacity     Int
+  currentBookings Int      @default(0)
+  status          String   @default("AVAILABLE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  tokens Token[]
+
+  @@index([centreId, date])
+  @@index([date, status])
+  @@map("slots")
+}
+
+model Token {
+  id            String      @id @default(uuid())
+  farmerId      String
+  farmer        Farmer      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  slotId        String
+  slot          Slot        @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  centreId      String
+  centre        Centre      @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  tokenNumber   String      @unique // e.g. "TKN-0001"
+  qrData        String
+  status        TokenStatus @default(ACTIVE)
+  queuePosition Int
+  estimatedTime String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
+
+  procurement Procurement?
+
+  @@index([centreId, status])
+  @@index([farmerId, status])
+  @@map("tokens")
+}
+
+model Produce {
+  id        String      @id @default(uuid())
+  farmerId  String
+  farmer    Farmer      @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  type      ProduceType
+  quantity  Float
+  unit      String      @default("QUINTAL")
+  grade     String?
+  mspRate   Float
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  procurements Procurement[]
+
+  @@index([farmerId])
+  @@map("produces")
+}
+
+model Procurement {
+  id                    String            @id @default(uuid())
+  farmerId              String
+  farmer                Farmer            @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  centreId              String
+  centre                Centre            @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  tokenId               String            @unique
+  token                 Token             @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  produceId             String
+  produce               Produce           @relation(fields: [produceId], references: [id], onDelete: Cascade)
+  status                ProcurementStatus @default(BOOKED)
+  bookedAt              DateTime          @default(now())
+  calledAt              DateTime?
+  arrivedAt             DateTime?
+  gateEntryAt           DateTime?
+  weighingAt            DateTime?
+  qualityCheckAt        DateTime?
+  procurementAt         DateTime?
+  paymentPendingAt      DateTime?
+  paymentProcessingAt   DateTime?
+  completedAt           DateTime?
+  rejectedAt            DateTime?
+  rejectionReason       String?
+  scaleId               String?
+  calculatedBaseRate    Float?
+  calculatedAdjustment  Float?
+  calculatedGrossAmount Float?
+  calculatedDeductions  Float?
+  calculatedNetAmount   Float?
+  timeline              Json?             // Array of timeline events [{ stage, label, timestamp, actor }]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @default(now()) @updatedAt
+
+  weighing     Weighing?
+  qualityCheck QualityCheck?
+  payment      Payment?
+
+  @@index([centreId, status])
+  @@index([farmerId, status])
+  @@index([status])
+  @@map("procurements")
+}
+
+model Weighing {
+  id            String      @id @default(uuid())
+  procurementId String      @unique
+  procurement   Procurement @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+  grossWeight   Float
+  tareWeight    Float
+  netWeight     Float
+  scaleId       String?
+  timestamp     DateTime    @default(now())
+
+  @@map("weighings")
+}
+
+model QualityCheck {
+  id              String      @id @default(uuid())
+  procurementId   String      @unique
+  procurement     Procurement @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+  crop            String?
+  moistureContent Float
+  foreignMatter   Float
+  damagedGrains   Float?
+  grade           String
+  qualityResult   String      @default("ACCEPTED")
+  accepted        Boolean     @default(true)
+  remarks         String      @default("")
+  timestamp       DateTime    @default(now())
+
+  @@map("quality_checks")
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  procurementId  String        @unique
+  procurement    Procurement   @relation(fields: [procurementId], references: [id], onDelete: Cascade)
+  farmerId       String
+  farmer         Farmer        @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  bookingId      String?
+  grossAmount    Float
+  deductions     Float
+  netAmount      Float
+  status         PaymentStatus @default(PENDING)
+  paymentMethod  String        @default("DBT (Direct Benefit Transfer)")
+  transactionId  String?
+  utr            String?
+  dbtReferenceId String?
+  initiatedAt    DateTime?
+  completedAt    DateTime?
+  processedAt    DateTime?
+  failureReason  String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+
+  @@index([farmerId, status])
+  @@index([status])
+  @@map("payments")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  titleHi   String
+  message   String
+  messageHi String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  entity    String
+  entityId  String
+  details   String
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

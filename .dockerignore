@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+dist
+.git
+.github
+.gitignore
+.vscode
+.idea
+*.log
+coverage
+scratch
+pgdata
+.env
+.env.local
+.tempmediaStorage

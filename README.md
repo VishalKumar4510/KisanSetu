@@ -211,13 +211,14 @@ SIH/
 
 ## 🔐 Demo Credentials
 
-| Role | Username | Password | Portal |
-|------|----------|----------|--------|
-| 👨‍🌾 Farmer | `farmer1` | `farmer1` | Mobile dashboard, token, queue, procurement |
-| 👮 Officer | `officer1` | `officer1` | Queue management, procurement processing |
-| 🔑 Admin | `admin1` | `admin1` | KPI dashboard, analytics, centre monitoring |
+| Role | Username | Password | Status & Details |
+|------|----------|----------|------------------|
+| 👨‍🌾 Farmer (Fresh Demo) | `farmer1` | `farmer1` | **Rajesh Kumar** — Starts with **no active booking** to test fresh slot booking, digital token, and queue generation |
+| 👨‍🌾 Farmer (Active Demo) | `farmer2` | `farmer2` | **Sita Devi** — Starts with an **active booking** in queue at Krishi Upaj Mandi to test live queue and procurement tracking |
+| 👮 Officer | `officer1` | `officer1` | Queue management, procurement stage processing |
+| 🔑 Admin | `admin1` | `admin1` | KPI dashboard, analytics, centre monitoring, live demo |
 
-> Additional farmers: `farmer2` through `farmer10` (password = username)
+> Additional farmers: `farmer3` through `farmer10` (password = username)
 
 ---
 

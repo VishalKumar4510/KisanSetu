@@ -14,6 +14,7 @@ export enum CongestionLevel {
 
 export enum ProcurementStatus {
   BOOKED = 'BOOKED',
+  CALLED = 'CALLED',
   ARRIVED = 'ARRIVED',
   GATE_ENTRY = 'GATE_ENTRY',
   WEIGHING = 'WEIGHING',
@@ -22,12 +23,16 @@ export enum ProcurementStatus {
   PAYMENT_PENDING = 'PAYMENT_PENDING',
   PAYMENT_PROCESSING = 'PAYMENT_PROCESSING',
   COMPLETED = 'COMPLETED',
+  REJECTED = 'REJECTED',
 }
 
 export enum PaymentStatus {
   PENDING = 'PENDING',
+  VALIDATING = 'VALIDATING',
+  INITIATED = 'INITIATED',
   PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
+  SUCCESS = 'SUCCESS',
   FAILED = 'FAILED',
 }
 
@@ -72,6 +77,10 @@ export interface Farmer extends User {
   landArea: number;
   crops: ProduceType[];
   role: UserRole.FARMER;
+  bankAccount?: string;
+  ifsc?: string;
+  bankName?: string;
+  bankVerificationStatus?: string;
 }
 
 export interface Centre {
@@ -123,14 +132,26 @@ export interface Produce {
   mspRate: number;
 }
 
+export interface ProcurementTimelineEvent {
+  stage: string;
+  label: string;
+  timestamp: string;
+  details?: string;
+  actor?: string;
+}
+
 export interface Procurement {
   id: string;
   farmerId: string;
   centreId: string;
   tokenId: string;
   produceId: string;
+  crop?: string;
+  quantity?: number;
+  estimatedQuantity?: number;
   status: ProcurementStatus;
   bookedAt?: string;
+  calledAt?: string;
   arrivedAt?: string;
   gateEntryAt?: string;
   weighingAt?: string;
@@ -139,6 +160,15 @@ export interface Procurement {
   paymentPendingAt?: string;
   paymentProcessingAt?: string;
   completedAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  scaleId?: string;
+  calculatedBaseRate?: number;
+  calculatedAdjustment?: number;
+  calculatedGrossAmount?: number;
+  calculatedDeductions?: number;
+  calculatedNetAmount?: number;
+  timeline?: ProcurementTimelineEvent[];
 }
 
 export interface Weighing {
@@ -147,15 +177,19 @@ export interface Weighing {
   grossWeight: number;
   tareWeight: number;
   netWeight: number;
+  scaleId?: string;
   timestamp: string;
 }
 
 export interface QualityCheck {
   id: string;
   procurementId: string;
+  crop?: string;
   moistureContent: number;
   foreignMatter: number;
-  grade: 'A' | 'B' | 'C';
+  damagedGrains?: number;
+  grade: 'A' | 'B' | 'C' | string;
+  qualityResult?: 'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW';
   accepted: boolean;
   remarks: string;
   timestamp: string;
@@ -165,12 +199,20 @@ export interface Payment {
   id: string;
   procurementId: string;
   farmerId: string;
+  bookingId?: string;
   grossAmount: number;
   deductions: number;
   netAmount: number;
   status: PaymentStatus;
+  paymentMethod?: string;
+  transactionId?: string;
+  utr?: string;
   dbtReferenceId?: string;
+  initiatedAt?: string;
+  completedAt?: string;
   processedAt?: string;
+  accountNumber?: string;
+  failureReason?: string;
   createdAt: string;
 }
 
@@ -256,3 +298,80 @@ export const PROCUREMENT_FLOW: ProcurementStatus[] = [
   ProcurementStatus.PAYMENT_PROCESSING,
   ProcurementStatus.COMPLETED,
 ];
+
+// ==================== OFFICER CONSOLE TYPES ====================
+
+export type ScaleStatus = 'ONLINE' | 'BUSY' | 'OFFLINE' | 'MAINTENANCE';
+
+export interface ScaleEquipment {
+  id: string;
+  centreId: string;
+  name: string;
+  type: 'WEIGHBRIDGE' | 'PLATFORM_SCALE';
+  capacityKg: number;
+  status: ScaleStatus;
+  lastCalibrationDate: string;
+}
+
+export type OfficerAlertSeverity = 'CRITICAL' | 'WARNING' | 'INFO';
+
+export interface OfficerAlert {
+  id: string;
+  centreId: string;
+  severity: OfficerAlertSeverity;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  relatedFarmerId?: string;
+  relatedProcurementId?: string;
+  relatedPaymentId?: string;
+}
+
+export interface FarmerProcurementRecord {
+  id: string;
+  date: string;
+  tokenNumber: string;
+  crop: string;
+  quantity: number;
+  qualityGrade: string;
+  amount: number;
+  paymentStatus: string;
+  utr?: string;
+  receiptId?: string;
+}
+
+export interface FarmerHistoryData {
+  farmerId: string;
+  name: string;
+  phone: string;
+  village: string;
+  district: string;
+  state: string;
+  crop: string;
+  currentStatus: string;
+  previousProcurementCount: number;
+  totalQuantityProcured: number;
+  totalAmountPaid: number;
+  records: FarmerProcurementRecord[];
+}
+
+export interface SettlementData {
+  centreId: string;
+  centreName: string;
+  date: string;
+  farmersServed: number;
+  lotsCompleted: number;
+  lotsRejected: number;
+  totalQuantity: number;
+  grossProcurementValue: number;
+  totalDeductions: number;
+  netDisbursed: number;
+  paymentsCompleted: number;
+  paymentsProcessing: number;
+  paymentsPending: number;
+  paymentsFailed: number;
+  hourlyFlow: { hour: string; count: number }[];
+  dailyVolume: { day: string; quantity: number }[];
+}
+

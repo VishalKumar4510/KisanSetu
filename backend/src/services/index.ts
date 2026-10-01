@@ -6,3 +6,5 @@ export { ProcurementStateMachine } from './procurementStateMachine';
 export * from './procurementMath';
 export * from './integrations/paymentGateway';
 export * from './integrations/notificationProvider';
+export * from './notifications';
+export * from './payments';

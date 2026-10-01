@@ -1,9 +1,9 @@
 import { NotificationType } from '../../../../shared/types';
-import { notificationRepository } from '../../repositories/notificationRepository';
+import { notificationService } from '../notifications';
 
 /**
  * Notification Provider Interface & Simulator Adapter
- * Clean abstraction separating business logic from SMS gateways (e.g. CDAC / NIC SMS) and push providers.
+ * Clean abstraction separating business logic from SMS gateways and push providers.
  */
 
 export interface SendNotificationParams {
@@ -21,21 +21,21 @@ export interface NotificationProvider {
 }
 
 /**
- * Simulated Notification Provider
- * Logs message delivery and writes in-app notifications to database.
+ * Notification Provider delegating to the central NotificationService
  */
 export class SimulatedNotificationProvider implements NotificationProvider {
   async send(params: SendNotificationParams): Promise<boolean> {
     try {
-      await notificationRepository.createNotification({
+      const result = await notificationService.sendDirectNotification({
         userId: params.userId,
         title: params.title,
-        titleHi: params.titleHi || params.title,
+        titleHi: params.titleHi,
         message: params.message,
-        messageHi: params.messageHi || params.message,
+        messageHi: params.messageHi,
         type: params.type,
+        phone: params.phone,
       });
-      return true;
+      return result.deliveries.some(d => d.status === 'SENT');
     } catch {
       return false;
     }
@@ -43,3 +43,4 @@ export class SimulatedNotificationProvider implements NotificationProvider {
 }
 
 export const defaultNotificationProvider: NotificationProvider = new SimulatedNotificationProvider();
+

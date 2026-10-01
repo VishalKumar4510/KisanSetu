@@ -39,7 +39,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 || error.response?.status === 403) {
       localStorage.removeItem('kisansetu_token');
       localStorage.removeItem('kisansetu_user');
       if (window.location.pathname !== '/login') window.location.href = '/login';
@@ -128,9 +128,16 @@ export const demoAPI = {
   step: () => api.post('/demo/step'),
 };
 
+export interface AiQueryResponseData {
+  answer: string;
+  answerHi: string;
+  data?: any;
+}
+
 // AI
 export const aiAPI = {
-  query: (query: string, farmerId?: string) => api.post('/ai/query', { query, farmerId }),
+  query: (query: string, farmerId?: string) =>
+    api.post<ApiResponse<AiQueryResponseData>>('/ai/query', { query, farmerId }),
 };
 
 // Officer Workflow API

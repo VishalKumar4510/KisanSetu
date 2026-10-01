@@ -4,7 +4,8 @@
 > An enterprise-grade GovTech & AgTech platform engineered for **Smart India Hackathon (SIH) 2026** and national APMC mandi modernization.
 
 [![CI Status](https://img.shields.io/badge/CI-Passing-16A34A?style=for-the-badge&logo=github-actions)](https://github.com/VishalKumar4510/KisanSetu)
-[![Automated Tests](https://img.shields.io/badge/Vitest-77%20Passed-15803D?style=for-the-badge&logo=vitest)](https://github.com/VishalKumar4510/KisanSetu)
+[![Vitest](https://img.shields.io/badge/Vitest-160%20Passed-15803D?style=for-the-badge&logo=vitest)](https://github.com/VishalKumar4510/KisanSetu)
+[![Playwright](https://img.shields.io/badge/Playwright-15%2F15%20E2E%20Passed-2EAD33?style=for-the-badge&logo=playwright)](https://github.com/VishalKumar4510/KisanSetu)
 [![TypeScript Strict](https://img.shields.io/badge/TypeScript-Strict%200%20Errors-3178C6?style=for-the-badge&logo=typescript)](https://github.com/VishalKumar4510/KisanSetu)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2016%20%2B%20Prisma-4169E1?style=for-the-badge&logo=postgresql)](https://github.com/VishalKumar4510/KisanSetu)
 [![Docker Ready](https://img.shields.io/badge/Docker-Compose%20Orchestrated-2496ED?style=for-the-badge&logo=docker)](https://github.com/VishalKumar4510/KisanSetu)
@@ -169,11 +170,13 @@ KisanSetu includes a complete **OpenAPI 3.0.3 specification** and embedded **Swa
 
 ---
 
-## 🧪 Automated Testing & Quality Suite (77 Tests)
+## 🧪 Automated Testing & Quality Suite (160 Vitest + 15 Playwright E2E)
 
-The repository features comprehensive automated test coverage with **Vitest** and **Supertest**:
+The repository features comprehensive automated test coverage with **Vitest**, **Supertest**, and **Playwright**:
 
 ```text
+ ✓ tests/unit/paymentArchitecture.test.ts (20 tests)
+ ✓ tests/integration/paymentPersistenceLifecycle.test.ts (17 tests)
  ✓ tests/integration/auth.test.ts (11 tests)
  ✓ tests/integration/authorization.test.ts (10 tests)
  ✓ tests/integration/slotsAndQueue.test.ts (8 tests)
@@ -183,10 +186,21 @@ The repository features comprehensive automated test coverage with **Vitest** an
  ✓ tests/integration/infrastructure.test.ts (7 tests)
  ✓ tests/integration/docs.test.ts (3 tests)
  ✓ tests/unit/procurementMath.test.ts (19 tests)
+ ✓ tests/unit/aiQuery.test.ts (12 tests)
+ ✓ tests/unit/notificationService.test.ts (15 tests)
+ ✓ tests/integration/paymentWebhook.test.ts (12 tests)
+ ✓ tests/integration/persistenceLifecycle.test.ts (7 tests)
 
- Test Files  9 passed (9)
-      Tests  77 passed (77)
-   Duration  ~42s
+ Test Files  15 passed (15)
+      Tests  160 passed (160)
+   Duration  ~45s
+
+ Playwright E2E Browser Test Suite:
+ ✓ e2e/admin.spec.ts (3 workflows passed)
+ ✓ e2e/farmer.spec.ts (4 workflows passed)
+ ✓ e2e/officer.spec.ts (3 workflows passed)
+ ✓ e2e/security.spec.ts (5 workflows passed)
+ Total E2E: 15 / 15 passed (100% green)
 ```
 
 Run test suite:
@@ -270,6 +284,23 @@ npm run dev
 
 - **Frontend:** [`http://localhost:5173`](http://localhost:5173)
 - **Backend:** [`http://localhost:3001`](http://localhost:3001)
+
+### Workspace Verification Commands
+```bash
+# Typecheck full monorepo (backend + frontend)
+npm run typecheck
+
+# Execute full automated test suite (160 tests across 15 suites)
+npm test
+
+# Execute Playwright browser E2E test suite (15/15 tests)
+npm run test:e2e
+
+# Compile production builds
+npm run build
+```
+
+For complete production deployment instructions, zero-downtime rolling update runbooks, and cloud database migration guides, see [DEPLOYMENT.md](file:///c:/Users/yesvi/OneDrive/Desktop/SIH/DEPLOYMENT.md).
 
 ---
 

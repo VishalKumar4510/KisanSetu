@@ -11,5 +11,7 @@ coverage
 scratch
 pgdata
 .env
-.env.local
+playwright-report
+test-results
 .tempmediaStorage
+.env.*

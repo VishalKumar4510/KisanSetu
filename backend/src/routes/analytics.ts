@@ -70,12 +70,21 @@ router.get('/charts/:type', optionalAuth, asyncHandler(async (req, res) => {
 
 // GET /api/analytics/centre-comparison
 router.get('/centre-comparison', optionalAuth, asyncHandler(async (_req, res) => {
-  const centres = store.getAllCentres();
-  const comparison = centres.map(c => {
-    const queue = store.getQueueByCentre(c.id);
-    const procs = store.getProcurementsByCentre(c.id);
-    const today = new Date().toISOString().split('T')[0];
-    const completedToday = procs.filter(p => p.status === ProcurementStatus.COMPLETED && p.completedAt?.startsWith(today)).length;
+  const dbCentres = await prisma.centre.findMany().catch(() => []);
+  const centres = dbCentres.length > 0 ? dbCentres : store.getAllCentres();
+  const today = new Date().toISOString().split('T')[0];
+
+  const comparison = await Promise.all(centres.map(async (c: any) => {
+    const activeTokens = await prisma.token.findMany({ where: { centreId: c.id, status: 'ACTIVE' } }).catch(() => []);
+    const queue = activeTokens.length > 0 ? activeTokens : store.getQueueByCentre(c.id);
+    const completedCount = await prisma.procurement.count({
+      where: {
+        centreId: c.id,
+        status: 'COMPLETED',
+        completedAt: { gte: new Date(today) },
+      },
+    }).catch(() => store.getProcurementsByCentre(c.id).filter(p => p.status === ProcurementStatus.COMPLETED && p.completedAt?.startsWith(today)).length);
+
     const utilization = Math.min(100, Math.round((queue.length / Math.max(c.capacity * 0.1, 1)) * 100));
     let congestionLevel: CongestionLevel = CongestionLevel.GREEN;
     if (utilization > 80) congestionLevel = CongestionLevel.RED;
@@ -85,9 +94,9 @@ router.get('/centre-comparison', optionalAuth, asyncHandler(async (_req, res) =>
       queueLength: queue.length,
       avgWaitTime: queue.length > 0 ? Math.round(queue.length * 15 / Math.max(c.activeBays, 1)) : 0,
       utilization, activeFarmers: queue.length,
-      completedToday, congestionLevel,
+      completedToday: completedCount, congestionLevel,
     };
-  });
+  }));
   return res.json({ success: true, data: comparison });
 }));
 

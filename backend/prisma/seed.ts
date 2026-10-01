@@ -16,27 +16,33 @@ import {
 } from '../src/data/seedData';
 import { UserRole } from '../../shared/types';
 
-export async function seedDatabase(): Promise<void> {
+export async function seedDatabase(forceTruncate = true): Promise<void> {
   console.log('--- SEEDING POSTGRESQL DATABASE ---');
   await initializeDatabase();
 
-  // 1. Clear existing data in reverse foreign key order
-  await prisma.$executeRawUnsafe(`
-    TRUNCATE TABLE 
-      audit_logs, 
-      notifications, 
-      payments, 
-      quality_checks, 
-      weighings, 
-      procurements, 
-      produces, 
-      tokens, 
-      slots, 
-      centres, 
-      farmers, 
-      users 
-    CASCADE;
-  `);
+  if (forceTruncate) {
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_PRODUCTION_TRUNCATE !== 'true') {
+      throw new Error('CRITICAL SAFETY BLOCK: Database truncation in production is prohibited without ALLOW_PRODUCTION_TRUNCATE=true.');
+    }
+
+    // 1. Clear existing data in reverse foreign key order
+    await prisma.$executeRawUnsafe(`
+      TRUNCATE TABLE 
+        audit_logs, 
+        notifications, 
+        payments, 
+        quality_checks, 
+        weighings, 
+        procurements, 
+        produces, 
+        tokens, 
+        slots, 
+        centres, 
+        farmers, 
+        users 
+      CASCADE;
+    `);
+  }
 
   // 2. Insert Admin and Officer Users
   for (const u of seedUsers) {
@@ -285,6 +291,31 @@ export async function seedDatabase(): Promise<void> {
   }
 
   console.log('✅ PostgreSQL Database successfully seeded with all KisanSetu entities!');
+}
+
+export async function seedBaseDataIfNotExists(): Promise<boolean> {
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_DEMO_DATA !== 'true') {
+    return false; // In production, demo seeding must be explicitly enabled
+  }
+
+  let existingUser = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      existingUser = await prisma.user.findFirst();
+      break;
+    } catch {
+      await new Promise(r => setTimeout(r, 400));
+    }
+  }
+  if (existingUser) {
+    return false;
+  }
+  try {
+    await seedDatabase(false);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 if (require.main === module) {

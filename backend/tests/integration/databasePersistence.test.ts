@@ -8,8 +8,9 @@ import {
   tokenRepository,
   procurementRepository,
   paymentRepository,
+  centreRepository,
 } from '../../src/repositories';
-import { seedDatabase } from '../../prisma/seed';
+import { seedDatabase, seedBaseDataIfNotExists } from '../../prisma/seed';
 import { ProduceType, PaymentStatus, ProcurementStatus } from '../../../shared/types';
 
 describe('Phase 18 Integration Tests: PostgreSQL & Prisma Persistent Layer', () => {
@@ -198,5 +199,38 @@ describe('Phase 18 Integration Tests: PostgreSQL & Prisma Persistent Layer', () 
     const payments2 = await paymentRepository.findByFarmerId(farmer2.id);
     expect(payments1.every(p => p.farmerId === farmer1.id)).toBe(true);
     expect(payments2.every(p => p.farmerId === farmer2.id)).toBe(true);
+  });
+
+  // 8. Queue Pause/Resume Persistence in PostgreSQL Schema
+  it('persists centre queue pause state in PostgreSQL schema without in-memory dependency', async () => {
+    const centres = await centreRepository.getAllCentres();
+    expect(centres.length).toBeGreaterThan(0);
+    const centre = centres[0];
+
+    // Pause queue in database
+    await centreRepository.setQueuePaused(centre.id, true);
+    const isPaused = await centreRepository.isQueuePaused(centre.id);
+    expect(isPaused).toBe(true);
+
+    // Verify directly from Prisma
+    const dbCentre = await prisma.centre.findUnique({ where: { id: centre.id } });
+    expect(dbCentre?.isQueuePaused).toBe(true);
+
+    // Resume queue in database
+    await centreRepository.setQueuePaused(centre.id, false);
+    const isResumed = await centreRepository.isQueuePaused(centre.id);
+    expect(isResumed).toBe(false);
+  });
+
+  // 9. Idempotent Database Initialization & Seeding
+  it('idempotent initialization preserves existing records and does not duplicate or wipe database', async () => {
+    const initialUsersCount = await prisma.user.count();
+    expect(initialUsersCount).toBeGreaterThan(0);
+
+    // Running non-destructive seed should detect existing data and preserve records
+    await seedBaseDataIfNotExists();
+
+    const postSeedUsersCount = await prisma.user.count();
+    expect(postSeedUsersCount).toBe(initialUsersCount);
   });
 });

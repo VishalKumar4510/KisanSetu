@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Sprout, Phone, Lock, Users, Shield, UserCheck, ArrowRight, Globe } from 'lucide-react';
+import { Sprout, Phone, Lock, Users, Shield, UserCheck, ArrowRight, Globe, ArrowLeft } from 'lucide-react';
 
 const demoCredentials = [
   { role: 'Farmer', roleHi: 'किसान', phone: 'farmer1', password: 'farmer1', icon: Users, color: 'from-green-500 to-emerald-600', bg: 'bg-green-50 border-green-200 hover:border-green-400 hover:shadow-green-100' },
@@ -59,13 +59,22 @@ export default function Login() {
   return (
     <div className="min-h-screen gradient-hero flex flex-col relative overflow-hidden">
       {/* Decorative elements */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-green-200/20 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-yellow-200/20 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl" />
+      <div className="absolute top-0 right-0 w-96 h-96 bg-green-200/20 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-yellow-200/20 rounded-full translate-y-1/2 -translate-x-1/3 blur-3xl pointer-events-none" />
 
-      {/* Language Toggle */}
-      <div className="absolute top-5 right-5 z-10">
-        <button onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200 text-sm font-medium text-gray-700 hover:bg-white hover:shadow-md transition-all duration-200">
+      {/* Top Bar with Back to Website & Language Toggle */}
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between relative z-10">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 backdrop-blur-sm shadow-xs border border-gray-200 text-xs font-semibold text-gray-700 hover:text-green-700 hover:bg-white transition-all duration-200"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{language === 'en' ? 'Back to Website' : 'मुख्य वेबसाइट'}</span>
+        </Link>
+        <button
+          onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/90 backdrop-blur-sm shadow-sm border border-gray-200 text-sm font-medium text-gray-700 hover:bg-white hover:shadow-md transition-all duration-200"
+        >
           <Globe className="w-4 h-4 text-green-600" />
           {language === 'en' ? 'हिन्दी' : 'English'}
         </button>
@@ -125,6 +134,13 @@ export default function Login() {
                 )}
               </button>
             </form>
+
+            <div className="mt-5 text-center text-xs text-gray-500 pt-4 border-t border-gray-100">
+              <span>{language === 'en' ? "Don't have an account?" : 'खाता नहीं है?'} </span>
+              <Link to="/register" className="font-bold text-[#16A34A] hover:underline">
+                {language === 'en' ? 'Register as Farmer' : 'यहाँ पंजीकरण करें'}
+              </Link>
+            </div>
           </div>
 
           {/* Demo Credentials */}

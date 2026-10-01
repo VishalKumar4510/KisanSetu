@@ -28,12 +28,14 @@ export enum ProcurementStatus {
 
 export enum PaymentStatus {
   PENDING = 'PENDING',
+  CREATED = 'CREATED',
   VALIDATING = 'VALIDATING',
   INITIATED = 'INITIATED',
   PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
   SUCCESS = 'SUCCESS',
   FAILED = 'FAILED',
+  REVERSED = 'REVERSED',
 }
 
 export enum ProduceType {
@@ -100,6 +102,7 @@ export interface Centre {
   status: 'ACTIVE' | 'INACTIVE';
   congestionLevel: CongestionLevel;
   contactPhone: string;
+  isQueuePaused?: boolean;
 }
 
 export interface Slot {
@@ -225,6 +228,11 @@ export interface Payment {
   processedAt?: string;
   accountNumber?: string;
   failureReason?: string;
+  providerName?: string;
+  providerReference?: string;
+  idempotencyKey?: string;
+  webhookEventId?: string;
+  providerStatus?: string;
   createdAt: string;
 }
 

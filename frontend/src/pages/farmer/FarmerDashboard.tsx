@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Sparkles,
   ExternalLink,
+  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
@@ -430,6 +431,47 @@ export default function FarmerDashboard() {
               </div>
             </button>
           ))}
+        </div>
+      </section>
+
+      {/* 4.5 Mandi AI Assistant Callout Banner */}
+      <section>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-900 via-[#15803D] to-teal-900 text-white p-4 sm:p-5 shadow-sm border border-emerald-700/50">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                <Bot className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-sm sm:text-base text-white">
+                    {language === 'hi' ? 'किसानसेतु मंडी सहायक' : 'KisanSetu Mandi Assistant'}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-emerald-100 uppercase tracking-wider">
+                    {language === 'hi' ? 'द्विभाषी बॉट' : 'Bilingual AI'}
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-100/90 mt-0.5 max-w-xl leading-relaxed">
+                  {language === 'hi'
+                    ? 'आज के एमएसपी भाव, कतार प्रतीक्षा समय, सबसे पहले उपलब्ध स्लॉट व टोकन स्थिति तुरंत पूछें।'
+                    : 'Instant answers for today’s MSP rates, queue waiting times, earliest available slots, and active token status.'}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                document.getElementById('farmer-ai-assistant-toggle')?.click();
+              }}
+              rightIcon={<Sparkles className="w-3.5 h-3.5 text-amber-500" />}
+              className="w-full sm:w-auto bg-white text-[#15803D] hover:bg-emerald-50 border-white text-xs font-bold py-2.5 px-4 shadow-sm"
+            >
+              {language === 'hi' ? 'सहायक से पूछें' : 'Ask Mandi Assistant'}
+            </Button>
+          </div>
         </div>
       </section>
 

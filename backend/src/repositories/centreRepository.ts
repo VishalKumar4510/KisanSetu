@@ -46,6 +46,30 @@ export class CentreRepository {
     }
   }
 
+  async setQueuePaused(id: string, isPaused: boolean): Promise<boolean> {
+    try {
+      await prisma.centre.update({
+        where: { id },
+        data: { isQueuePaused: isPaused },
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async isQueuePaused(id: string): Promise<boolean> {
+    try {
+      const centre = await prisma.centre.findUnique({
+        where: { id },
+        select: { isQueuePaused: true },
+      });
+      return centre?.isQueuePaused ?? false;
+    } catch {
+      return false;
+    }
+  }
+
   private mapToCentre(c: any): Centre {
     return {
       id: c.id,
@@ -63,6 +87,7 @@ export class CentreRepository {
       status: c.status as 'ACTIVE' | 'INACTIVE',
       congestionLevel: c.congestionLevel as CongestionLevel,
       contactPhone: c.contactPhone,
+      isQueuePaused: Boolean(c.isQueuePaused),
     };
   }
 }

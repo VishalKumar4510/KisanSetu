@@ -1,11 +1,18 @@
 node_modules/
 **/node_modules/
 .env
+.env.*
 .env.local
 .env.*.local
 **/.env
+**/.env.*
 **/.env.local
 **/.env.*.local
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
 .DS_Store
 
 backend/dist/
@@ -19,6 +26,9 @@ pgdata/
 # Logs & Test artifacts
 *.log
 **/*.log
+playwright-report/
+test-results/
+blob-report/
 scratch/*.png
 scratch/*.pdf
 scratch/screenshots/

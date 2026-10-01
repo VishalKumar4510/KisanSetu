@@ -7,6 +7,14 @@ import { FarmerLayout, OfficerLayout, AdminLayout } from './components/layout';
 
 // Lazy-loaded pages
 const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const LandingPage = lazy(() => import('./pages/public/LandingPage'));
+const AboutPage = lazy(() => import('./pages/public/AboutPage'));
+const HowItWorksPage = lazy(() => import('./pages/public/HowItWorksPage'));
+const FeaturesPage = lazy(() => import('./pages/public/FeaturesPage'));
+const FaqPage = lazy(() => import('./pages/public/FaqPage'));
+const ContactPage = lazy(() => import('./pages/public/ContactPage'));
+
 const FarmerDashboard = lazy(() => import('./pages/farmer/FarmerDashboard'));
 const ProduceRegistration = lazy(() => import('./pages/farmer/ProduceRegistration'));
 const CentreSelection = lazy(() => import('./pages/farmer/CentreSelection'));
@@ -49,8 +57,15 @@ function AppRoutes() {
   return (
     <Suspense fallback={<Loading />}>
       <Routes>
+        {/* Public Website Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/faq" element={<FaqPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/register" element={<Register />} />
 
         {/* Farmer Routes */}
         <Route path="/farmer" element={<ProtectedRoute roles={['FARMER']}><FarmerLayout><FarmerDashboard /></FarmerLayout></ProtectedRoute>} />
@@ -78,7 +93,7 @@ function AppRoutes() {
         <Route path="/admin/analytics" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><Analytics /></AdminLayout></ProtectedRoute>} />
         <Route path="/admin/reports" element={<ProtectedRoute roles={['ADMIN']}><AdminLayout><Reports /></AdminLayout></ProtectedRoute>} />
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

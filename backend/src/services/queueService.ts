@@ -88,6 +88,7 @@ export class QueueService {
     const centre = (await centreRepository.findById(centreId)) || store.getCentreById(centreId);
     if (!centre) throw new AppError('Centre not found', 404);
 
+    await centreRepository.setQueuePaused(centreId, true).catch(() => null);
     store.setQueuePaused(centreId, true);
     return {
       centreId,
@@ -106,6 +107,7 @@ export class QueueService {
     const centre = (await centreRepository.findById(centreId)) || store.getCentreById(centreId);
     if (!centre) throw new AppError('Centre not found', 404);
 
+    await centreRepository.setQueuePaused(centreId, false).catch(() => null);
     store.setQueuePaused(centreId, false);
     return {
       centreId,
@@ -117,11 +119,20 @@ export class QueueService {
    * Call next token in queue for officer console.
    */
   async callNext(centreId: string): Promise<any | null> {
-    const queue = store.getQueueByCentre(centreId);
+    const activeTokens = await tokenRepository.findActiveByCentreId(centreId);
+    const queue = activeTokens.length > 0 ? activeTokens : store.getQueueByCentre(centreId);
     if (queue.length === 0) return null;
     const nextToken = queue[0];
+
+    await tokenRepository.updateToken(nextToken.id, { status: 'USED' }).catch(() => null);
     store.updateToken(nextToken.id, { status: 'USED' });
-    queue.slice(1).forEach((t, i) => store.updateToken(t.id, { queuePosition: i + 1 }));
+
+    for (let i = 1; i < queue.length; i++) {
+      const t = queue[i];
+      await tokenRepository.updateToken(t.id, { queuePosition: i }).catch(() => null);
+      store.updateToken(t.id, { queuePosition: i });
+    }
+
     const farmer = (await farmerRepository.findById(nextToken.farmerId)) || store.getFarmerById(nextToken.farmerId);
     return { token: nextToken, farmerName: farmer?.name };
   }

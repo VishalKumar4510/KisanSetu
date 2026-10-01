@@ -15,7 +15,19 @@ router.get('/history', authenticateToken, asyncHandler((req, res) => paymentCont
 // GET /api/payments - List all payments across centres (Admin / Officer)
 router.get('/', authenticateToken, requireRole(UserRole.ADMIN, UserRole.OFFICER), asyncHandler((req, res) => paymentController.getAll(req, res)));
 
+// POST /api/payments/webhook - Provider webhook callback (secured via HMAC signature)
+router.post('/webhook', asyncHandler((req, res) => paymentController.handleWebhook(req, res)));
+
+// GET /api/payments/:id/receipt - Official payment receipt
+router.get('/:id/receipt', authenticateToken, asyncHandler((req, res) => paymentController.getReceipt(req, res)));
+
+// GET /api/payments/:id/transactions - Payment transaction audit history (Admin / Officer)
+router.get('/:id/transactions', authenticateToken, requireRole(UserRole.ADMIN, UserRole.OFFICER), asyncHandler((req, res) => paymentController.getTransactionHistory(req, res)));
+
 // PUT /api/payments/:id/process - Administrative DBT payment settlement
 router.put('/:id/process', authenticateToken, requireRole(UserRole.ADMIN), asyncHandler((req, res) => paymentController.processPayment(req, res)));
+
+// POST /api/payments/:id/reverse - Administrative settlement reversal (Admin only)
+router.post('/:id/reverse', authenticateToken, requireRole(UserRole.ADMIN), asyncHandler((req, res) => paymentController.reversePayment(req, res)));
 
 export default router;

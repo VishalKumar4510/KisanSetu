@@ -1,11 +1,23 @@
 import { paymentRepository } from '../repositories/paymentRepository';
 import { procurementRepository } from '../repositories/procurementRepository';
 import { farmerRepository } from '../repositories/farmerRepository';
+import { centreRepository } from '../repositories/centreRepository';
+import { tokenRepository } from '../repositories/tokenRepository';
 import store from '../data/store';
 import { AppError } from '../middleware/errorHandler';
-import { Payment, PaymentStatus, ProcurementStatus, NotificationType } from '../../../shared/types';
-import { defaultPaymentGateway } from './integrations/paymentGateway';
-import { defaultNotificationProvider } from './integrations/notificationProvider';
+import { Payment, PaymentStatus, ProcurementStatus } from '../../../shared/types';
+import { notificationService } from './notifications';
+import {
+  transactionRepository,
+  paymentStateMachine,
+  getActivePaymentAdapter,
+  webhookHandler,
+  PaymentTransaction,
+  PaymentReceipt,
+  WebhookResult,
+  PaymentState,
+} from './payments';
+import logger from '../lib/logger';
 
 export class PaymentService {
   /**
@@ -13,11 +25,11 @@ export class PaymentService {
    */
   async getCurrentPayment(farmerId: string): Promise<Payment | null> {
     const payments = await paymentRepository.findByFarmerId(farmerId);
-    const active = payments.find(p => p.status !== PaymentStatus.COMPLETED) || payments[0];
+    const active = payments.find(p => p.status !== PaymentStatus.COMPLETED && p.status !== PaymentStatus.SUCCESS) || payments[0];
     if (active) return this.maskPaymentDetails(active);
 
     const storePayments = store.getPaymentsByFarmer(farmerId);
-    const storeActive = storePayments.find(p => p.status !== PaymentStatus.COMPLETED) || storePayments[0];
+    const storeActive = storePayments.find(p => p.status !== PaymentStatus.COMPLETED && p.status !== PaymentStatus.SUCCESS) || storePayments[0];
     return storeActive ? this.maskPaymentDetails(storeActive) : null;
   }
 
@@ -38,9 +50,11 @@ export class PaymentService {
    */
   async getAllPayments(centreId?: string): Promise<Payment[]> {
     if (centreId) {
+      const dbPayments = await paymentRepository.findByCentreId(centreId).catch(() => []);
+      if (dbPayments.length > 0) return dbPayments;
       return store.getPaymentsByCentre(centreId);
     }
-    const all = await paymentRepository.getAllPayments();
+    const all = await paymentRepository.getAllPayments().catch(() => []);
     if (all.length > 0) return all;
     return store.getAllPayments();
   }
@@ -143,23 +157,37 @@ export class PaymentService {
   }
 
   /**
-   * Initiate simulated DBT payment transfer (advances to PAYMENT_PROCESSING).
+   * Initiate DBT payment transfer:
+   * Transitions state to PROCESSING, creates transaction record, and dispatches PAYMENT_PROCESSING event.
    */
-  async initiatePayment(procurementId: string, officerName?: string): Promise<{ payment: Payment; procurement: any; transactionId: string; status?: string }> {
+  async initiatePayment(
+    procurementId: string,
+    officerName?: string
+  ): Promise<{ payment: Payment; procurement: any; transactionId: string; status?: string }> {
     const proc = (await procurementRepository.findById(procurementId).catch(() => null)) || store.getProcurementById(procurementId);
     if (!proc) throw new AppError('Procurement not found', 404);
 
+    const storePayment = store.getPaymentByProcurement(proc.id);
+    const dbPayment = await paymentRepository.findByProcurementId(proc.id).catch(() => null);
     const existingPayment =
-      (await paymentRepository.findByProcurementId(proc.id).catch(() => null)) ||
-      store.getPaymentByProcurement(proc.id);
+      (storePayment && storePayment.status !== dbPayment?.status ? storePayment : dbPayment) ||
+      storePayment ||
+      dbPayment;
 
-    if (existingPayment && existingPayment.status === PaymentStatus.COMPLETED) {
+    if (existingPayment && (existingPayment.status === PaymentStatus.COMPLETED || existingPayment.status === PaymentStatus.SUCCESS)) {
       throw new AppError('Cannot initiate a second successful payment for an already settled procurement', 409);
+    }
+
+    // Idempotency: If already in PROCESSING with a valid transactionId, return existing record
+    if (existingPayment && existingPayment.status === PaymentStatus.PROCESSING && existingPayment.transactionId) {
+      logger.info({ paymentId: existingPayment.id, transactionId: existingPayment.transactionId }, 'Idempotent initiatePayment: payment already in PROCESSING');
+      return { payment: existingPayment, procurement: proc, transactionId: existingPayment.transactionId, status: 'PROCESSING' };
     }
 
     const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
     const randomSuffix = String(Math.floor(1000 + Math.random() * 9000));
     const transactionId = `KS-TXN-${todayStr}-${randomSuffix}`;
+    const adapter = getActivePaymentAdapter();
 
     let payment = existingPayment;
     if (!payment) {
@@ -170,6 +198,11 @@ export class PaymentService {
         deductions: proc.calculatedDeductions || 0,
         netAmount: proc.calculatedNetAmount || 0,
         status: PaymentStatus.PROCESSING,
+        transactionId,
+        providerName: adapter.name,
+        providerReference: transactionId,
+        idempotencyKey: `init-${proc.id}-${transactionId}`,
+        providerStatus: 'PROCESSING',
       }).catch(() => null as any);
 
       if (!payment) {
@@ -182,6 +215,10 @@ export class PaymentService {
           netAmount: proc.calculatedNetAmount || 0,
           status: PaymentStatus.PROCESSING,
           transactionId,
+          providerName: adapter.name,
+          providerReference: transactionId,
+          idempotencyKey: `init-${proc.id}-${transactionId}`,
+          providerStatus: 'PROCESSING',
           createdAt: new Date().toISOString(),
         } as Payment;
       }
@@ -189,11 +226,49 @@ export class PaymentService {
     } else {
       const updated = await paymentRepository.updatePayment(payment.id, {
         status: PaymentStatus.PROCESSING,
+        transactionId,
+        providerName: adapter.name,
+        providerReference: transactionId,
+        idempotencyKey: `init-${proc.id}-${transactionId}`,
+        providerStatus: 'PROCESSING',
         processedAt: new Date().toISOString(),
       }).catch(() => null);
       if (updated) payment = { ...updated, transactionId };
-      store.updatePayment(payment.id, { status: PaymentStatus.PROCESSING, transactionId });
+      store.updatePayment(payment.id, {
+        status: PaymentStatus.PROCESSING,
+        transactionId,
+        providerName: adapter.name,
+        providerReference: transactionId,
+        idempotencyKey: `init-${proc.id}-${transactionId}`,
+        providerStatus: 'PROCESSING',
+      });
     }
+
+    // Register / update transaction record in transactionRepository
+    const txnRecord: PaymentTransaction = {
+      id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      paymentId: payment.id,
+      procurementId: proc.id,
+      farmerId: payment.farmerId,
+      amount: payment.netAmount,
+      currency: 'INR',
+      state: 'PROCESSING',
+      provider: adapter.name,
+      providerReferenceId: transactionId,
+      idempotencyKey: `init-${proc.id}-${transactionId}`,
+      initiatedAt: new Date().toISOString(),
+      auditLog: [
+        {
+          timestamp: new Date().toISOString(),
+          fromState: 'CREATED',
+          toState: 'PROCESSING',
+          event: 'PAYMENT_INITIATED',
+          actor: officerName || 'Mandi Officer',
+          details: { transactionId, provider: adapter.name },
+        },
+      ],
+    };
+    await transactionRepository.save(txnRecord);
 
     await procurementRepository.updateProcurement(proc.id, {
       status: ProcurementStatus.PAYMENT_PROCESSING,
@@ -201,11 +276,26 @@ export class PaymentService {
     }).catch(() => {});
     store.updateProcurement(proc.id, { status: ProcurementStatus.PAYMENT_PROCESSING });
 
+    // Dispatch PAYMENT_PROCESSING event via NotificationService
+    await notificationService.dispatch({
+      type: 'PAYMENT_PROCESSING',
+      farmerId: payment.farmerId,
+      paymentId: payment.id,
+      netAmount: payment.netAmount,
+    }).catch(() => {});
+
+    logger.info({
+      paymentId: payment.id,
+      procurementId: proc.id,
+      transactionId,
+      provider: adapter.name,
+    }, 'Payment initiated and registered in transaction ledger');
+
     return { payment, procurement: proc, transactionId, status: 'INITIATED' };
   }
 
   /**
-   * Complete payment settlement via atomic PostgreSQL transaction or simulate gateway failure.
+   * Complete payment settlement via atomic PostgreSQL transaction or provider adapter.
    */
   async processPayment(params: {
     paymentId: string;
@@ -219,13 +309,63 @@ export class PaymentService {
       throw new AppError('Payment not found', 404);
     }
 
-    if (payment.status === PaymentStatus.COMPLETED) {
+    if (payment.status === PaymentStatus.COMPLETED || payment.status === PaymentStatus.SUCCESS) {
       throw new AppError('Payment is already completed and settled', 409);
     }
 
-    // Simulate Banking / DBT Failure Path
-    if (simulateFailure) {
-      const failureReason = 'SIM_ERR_GATEWAY_TIMEOUT: Bank gateway timeout during DBT transfer';
+    const adapter = getActivePaymentAdapter();
+    let txn = await transactionRepository.findByPaymentId(payment.id);
+
+    // If transaction record does not exist yet, initialize it
+    if (!txn) {
+      txn = await transactionRepository.save({
+        id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        paymentId: payment.id,
+        procurementId: payment.procurementId,
+        farmerId: payment.farmerId,
+        amount: payment.netAmount,
+        currency: 'INR',
+        state: payment.status === PaymentStatus.FAILED ? 'FAILED' : 'PROCESSING',
+        provider: adapter.name,
+        providerReferenceId: payment.transactionId || `KS-TXN-${Date.now()}`,
+        idempotencyKey: `proc-${payment.id}-${Date.now()}`,
+        initiatedAt: payment.createdAt,
+        auditLog: [],
+      });
+    } else if (txn.state === 'SUCCESS') {
+      txn.state = payment.status === PaymentStatus.FAILED ? 'FAILED' : 'PROCESSING';
+      await transactionRepository.updateState(txn.id, txn.state);
+    }
+
+    // If transaction was previously FAILED, retrying transitions it back to PROCESSING first
+    if (txn.state === 'FAILED') {
+      paymentStateMachine.assertValidTransition(txn.state, 'PROCESSING', payment.id);
+      await transactionRepository.updateState(txn.id, 'PROCESSING');
+      await transactionRepository.addAuditLog(txn.id, {
+        fromState: 'FAILED',
+        toState: 'PROCESSING',
+        event: 'PAYMENT_RETRY_INITIATED',
+        actor: actorName,
+      });
+      txn.state = 'PROCESSING';
+    }
+
+    // Check state transition legality
+    const targetState: PaymentState = simulateFailure ? 'FAILED' : 'SUCCESS';
+    paymentStateMachine.assertValidTransition(txn.state, targetState, payment.id);
+
+    // Call Provider Adapter
+    const transferResult = await adapter.initiateTransfer({
+      transactionId: txn.id,
+      paymentId: payment.id,
+      farmerId: payment.farmerId,
+      amount: payment.netAmount,
+      simulateFailure,
+    });
+
+    if (transferResult.state === 'FAILED' || simulateFailure) {
+      const failureReason = transferResult.failureReason || 'SIM_ERR_GATEWAY_TIMEOUT: Bank gateway timeout during DBT transfer';
+
       const failedPayment = await paymentRepository.updatePayment(payment.id, {
         status: PaymentStatus.FAILED,
         failureReason,
@@ -235,6 +375,24 @@ export class PaymentService {
         status: PaymentStatus.FAILED,
         failureReason,
       });
+
+      await transactionRepository.updateState(txn.id, 'FAILED', { failureReason });
+      await transactionRepository.addAuditLog(txn.id, {
+        fromState: txn.state,
+        toState: 'FAILED',
+        event: 'PAYMENT_FAILED',
+        actor: actorName,
+        details: { failureReason },
+      });
+
+      // Dispatch PAYMENT_FAILED event via NotificationService
+      await notificationService.dispatch({
+        type: 'PAYMENT_FAILED',
+        farmerId: payment.farmerId,
+        paymentId: payment.id,
+        netAmount: payment.netAmount,
+        reason: failureReason,
+      }).catch(() => {});
 
       return {
         payment: failedPayment || {
@@ -246,16 +404,9 @@ export class PaymentService {
       };
     }
 
-    // Call Payment Gateway Adapter
-    const gatewayResult = await defaultPaymentGateway.processDbt({
-      paymentId: payment.id,
-      amount: payment.netAmount,
-      farmerId: payment.farmerId,
-    });
-
-    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const utr = gatewayResult.utr || `${Math.floor(100000000000 + Math.random() * 900000000000)}`;
-    const dbtReferenceId = gatewayResult.dbtReferenceId || `DBT-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${randomSuffix}`;
+    // Success settlement path
+    const utr = transferResult.utr || `${Math.floor(100000000000 + Math.random() * 900000000000)}`;
+    const dbtReferenceId = transferResult.dbtReferenceId || `DBT-${new Date().toISOString().split('T')[0].replace(/-/g, '')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     // Execute Atomic PostgreSQL Transaction (Phase 18 transaction boundary)
     let settlement: any = null;
@@ -268,7 +419,7 @@ export class PaymentService {
       });
     } catch (err: any) {
       if (err instanceof AppError && err.statusCode === 409) throw err;
-      // Fallback if record is in memory store or test environment
+      // In-memory or sandbox fallback
     }
 
     // Update store state for compatibility
@@ -293,12 +444,24 @@ export class PaymentService {
       }
     }
 
-    // Dispatch notification
-    await defaultNotificationProvider.send({
-      userId: payment.farmerId,
-      title: 'DBT Payment Disbursed',
-      message: `Your MSP payment of ₹${payment.netAmount.toLocaleString('en-IN')} has been disbursed via DBT (UTR: ${utr}).`,
-      type: NotificationType.PAYMENT_PROCESSED,
+    // Update Transaction Ledger & Audit Trail
+    await transactionRepository.updateState(txn.id, 'SUCCESS', { utr, dbtReferenceId });
+    await transactionRepository.addAuditLog(txn.id, {
+      fromState: txn.state,
+      toState: 'SUCCESS',
+      event: 'PAYMENT_SETTLED',
+      actor: actorName,
+      details: { utr, dbtReferenceId },
+    });
+
+    // Dispatch PAYMENT_SUCCESS event via central NotificationService
+    await notificationService.dispatch({
+      type: 'PAYMENT_SUCCESS',
+      farmerId: payment.farmerId,
+      paymentId: payment.id,
+      netAmount: payment.netAmount,
+      utr,
+      dbtReferenceId,
     }).catch(() => {});
 
     const updatedPayment = settlement?.payment || store.getPaymentById(payment.id) || {
@@ -314,6 +477,166 @@ export class PaymentService {
       utr,
       dbtReferenceId,
     };
+  }
+
+  /**
+   * Process incoming Webhook from banking/PFMS provider.
+   */
+  async handleWebhook(params: {
+    rawBody: any;
+    signature?: string;
+    headers?: Record<string, any>;
+    providerName?: string;
+  }): Promise<WebhookResult> {
+    return webhookHandler.handleWebhook(params);
+  }
+
+  /**
+   * Retrieve official payment receipt.
+   */
+  async getReceipt(paymentIdOrProcurementId: string): Promise<PaymentReceipt> {
+    let payment = await this.getPaymentById(paymentIdOrProcurementId);
+    let proc = null;
+
+    if (!payment) {
+      payment = (await paymentRepository.findByProcurementId(paymentIdOrProcurementId).catch(() => null)) ||
+        store.getPaymentByProcurement(paymentIdOrProcurementId);
+      proc = (await procurementRepository.findById(paymentIdOrProcurementId).catch(() => null)) ||
+        store.getProcurementById(paymentIdOrProcurementId);
+    } else {
+      proc = (await procurementRepository.findById(payment.procurementId).catch(() => null)) ||
+        store.getProcurementById(payment.procurementId);
+    }
+
+    if (!payment || !proc) {
+      throw new AppError('Payment or procurement record not found for receipt generation', 404);
+    }
+
+    if (
+      payment.status !== PaymentStatus.COMPLETED &&
+      payment.status !== PaymentStatus.SUCCESS &&
+      payment.status !== PaymentStatus.REVERSED
+    ) {
+      throw new AppError('Payment receipt is not available until payment is settled or reversed', 400);
+    }
+
+    const farmer = (await farmerRepository.findById(proc.farmerId).catch(() => null)) || store.getFarmerById(proc.farmerId);
+    const centre = (await centreRepository.findById(proc.centreId).catch(() => null)) || store.getCentreById(proc.centreId);
+    const weighing = (await procurementRepository.getWeighingByProcurementId(proc.id).catch(() => null)) || store.getWeighingByProcurement(proc.id);
+    const quality = (await procurementRepository.getQualityCheckByProcurementId(proc.id).catch(() => null)) || store.getQualityCheckByProcurement(proc.id);
+    const token = proc.tokenId ? ((await tokenRepository.findById(proc.tokenId).catch(() => null)) || store.getTokenById(proc.tokenId)) : null;
+
+    const maskedAccount = farmer?.bankAccount
+      ? `•••• •••• •••• ${farmer.bankAccount.slice(-4)}`
+      : '•••• •••• •••• 9842';
+
+    const paymentState: PaymentState =
+      payment.status === PaymentStatus.REVERSED
+        ? 'REVERSED'
+        : payment.status === PaymentStatus.COMPLETED || payment.status === PaymentStatus.SUCCESS
+        ? 'SUCCESS'
+        : (payment.status as any);
+
+    return {
+      receiptNumber: `RCP-${proc.id.toUpperCase()}`,
+      issuedAt: payment.completedAt || proc.completedAt || new Date().toISOString(),
+      payment: {
+        id: payment.id,
+        status: payment.status,
+        state: paymentState,
+        grossAmount: payment.grossAmount,
+        deductions: payment.deductions,
+        netAmount: payment.netAmount,
+        utr: payment.utr,
+        dbtReferenceId: payment.dbtReferenceId,
+        paymentMethod: payment.paymentMethod || 'Direct Benefit Transfer (DBT via PFMS)',
+        processedAt: payment.processedAt,
+      },
+      procurement: proc,
+      farmer: {
+        ...farmer,
+        bankAccount: maskedAccount,
+      },
+      centre,
+      token,
+      weighing,
+      qualityCheck: quality,
+    };
+  }
+
+  /**
+   * Get transaction history and audit log for a payment.
+   */
+  async getTransactionHistory(paymentId: string): Promise<PaymentTransaction | null> {
+    return transactionRepository.findByPaymentId(paymentId);
+  }
+
+  /**
+   * Reverse a settled payment (reversal only allowed from SUCCESS state).
+   */
+  async reversePayment(params: {
+    paymentId: string;
+    reason: string;
+    actorName?: string;
+  }): Promise<PaymentTransaction> {
+    const { paymentId, reason, actorName = 'Mandi Admin' } = params;
+    const payment = await this.getPaymentById(paymentId);
+    if (!payment) throw new AppError('Payment not found', 404);
+
+    let txn = await transactionRepository.findByPaymentId(payment.id);
+    const currentState: PaymentState = txn ? txn.state : (payment.status === PaymentStatus.COMPLETED ? 'SUCCESS' : 'FAILED');
+
+    paymentStateMachine.assertValidTransition(currentState, 'REVERSED', payment.id);
+
+    if (!txn) {
+      txn = await transactionRepository.save({
+        id: `txn-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        paymentId: payment.id,
+        procurementId: payment.procurementId,
+        farmerId: payment.farmerId,
+        amount: payment.netAmount,
+        currency: 'INR',
+        state: 'SUCCESS',
+        provider: 'PFMS_SIMULATED',
+        providerReferenceId: payment.transactionId || payment.id,
+        idempotencyKey: `rev-${payment.id}`,
+        initiatedAt: payment.createdAt,
+        auditLog: [],
+      });
+    }
+
+    await paymentRepository.updatePayment(payment.id, {
+      status: PaymentStatus.REVERSED,
+      failureReason: `Reversed: ${reason}`,
+    }).catch(() => {});
+
+    store.updatePayment(payment.id, {
+      status: PaymentStatus.REVERSED,
+      failureReason: `Reversed: ${reason}`,
+    });
+
+    const updatedTxn = await transactionRepository.updateState(txn.id, 'REVERSED', {
+      failureReason: reason,
+    });
+
+    await transactionRepository.addAuditLog(txn.id, {
+      fromState: currentState,
+      toState: 'REVERSED',
+      event: 'PAYMENT_REVERSED',
+      actor: actorName,
+      details: { reason },
+    });
+
+    // Dispatch PAYMENT_REVERSED event via NotificationService
+    await notificationService.dispatch({
+      type: 'PAYMENT_REVERSED',
+      farmerId: payment.farmerId,
+      paymentId: payment.id,
+      netAmount: payment.netAmount,
+      reason,
+    }).catch(() => {});
+
+    return updatedTxn!;
   }
 
   /**

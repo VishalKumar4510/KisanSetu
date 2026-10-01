@@ -39,12 +39,12 @@ router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
 
   const enrichedProcurement = activeProcurement ? {
     ...activeProcurement,
-    centreName: store.getCentreById(activeProcurement.centreId)?.name,
+    centreName: ((await centreRepository.findById(activeProcurement.centreId).catch(() => null)) || store.getCentreById(activeProcurement.centreId))?.name,
   } : undefined;
 
-  const enrichedToken = activeToken ? (() => {
-    const centre = store.getCentreById(activeToken.centreId);
-    const slot = store.getSlotById(activeToken.slotId);
+  const enrichedToken = activeToken ? await (async () => {
+    const centre = (await centreRepository.findById(activeToken.centreId).catch(() => null)) || store.getCentreById(activeToken.centreId);
+    const slot = (await slotRepository.findById(activeToken.slotId).catch(() => null)) || store.getSlotById(activeToken.slotId);
     return {
       ...activeToken,
       centreName: centre?.name,

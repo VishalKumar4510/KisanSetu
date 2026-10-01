@@ -22,8 +22,41 @@ const envSchema = z.object({
     }),
   LOG_LEVEL: z.string().default('info'),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000), // 15 minutes
-  RATE_LIMIT_MAX_AUTH: z.coerce.number().default(30), // Max auth requests per window
+  RATE_LIMIT_MAX_AUTH: z.coerce.number().default(process.env.NODE_ENV === 'production' ? 30 : 500), // Strict in production, relaxed in dev/test for E2E suites
   RATE_LIMIT_MAX_GENERAL: z.coerce.number().default(600), // Max general requests per window
+  DATABASE_MAX_POOL: z.coerce.number().default(10),
+  DATABASE_SSL: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
+  SEED_DEMO_DATA: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1')
+    .default(false),
+  ALLOW_PRODUCTION_TRUNCATE: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1')
+    .default(false),
+  ALLOW_LOCAL_DB_IN_PRODUCTION: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1')
+    .default(false),
+  PAYMENT_MODE: z.enum(['SIMULATED', 'PRODUCTION']).default('SIMULATED'),
+  PAYMENT_PROVIDER: z.string().optional().default('sandbox'),
+  PAYMENT_WEBHOOK_SECRET: z.string().default('kisansetu-webhook-dev-secret-2026'),
+  PFMS_ENDPOINT_URL: z.string().optional(),
+  PFMS_API_ENDPOINT: z.string().optional(),
+  PFMS_CLIENT_ID: z.string().optional(),
+  PFMS_CLIENT_SECRET: z.string().optional(),
+  PFMS_WEBHOOK_SECRET: z.string().optional(),
+  PFMS_CERT_PATH: z.string().optional(),
+  SMS_GATEWAY_URL: z.string().optional(),
+  SMS_API_KEY: z.string().optional(),
+  WHATSAPP_API_URL: z.string().optional(),
+  WHATSAPP_API_KEY: z.string().optional(),
 });
 
 export type AppConfig = z.infer<typeof envSchema> & {
@@ -52,7 +85,11 @@ export function loadAndValidateConfig(): AppConfig {
       throw new Error(msg);
     }
 
-    if (process.env.JWT_SECRET.includes('dev-env') || process.env.JWT_SECRET.includes('hackathon')) {
+    if (
+      process.env.JWT_SECRET.includes('dev-env') ||
+      process.env.JWT_SECRET.includes('hackathon') ||
+      process.env.JWT_SECRET.includes('placeholder')
+    ) {
       const msg = 'FATAL: In production, JWT_SECRET cannot use default or development placeholder strings.';
       logger.fatal(msg);
       throw new Error(msg);
@@ -60,6 +97,16 @@ export function loadAndValidateConfig(): AppConfig {
 
     if (!process.env.DATABASE_URL) {
       const msg = 'FATAL: In production, DATABASE_URL must be explicitly configured.';
+      logger.fatal(msg);
+      throw new Error(msg);
+    }
+
+    // Guard against accidentally running on unconfigured local SQLite/pglite without explicit opt-in
+    if (
+      (process.env.DATABASE_URL.includes('127.0.0.1') || process.env.DATABASE_URL.includes('localhost')) &&
+      !rawConfig.ALLOW_LOCAL_DB_IN_PRODUCTION
+    ) {
+      const msg = 'FATAL: In production, DATABASE_URL must point to a production PostgreSQL database, not localhost (or set ALLOW_LOCAL_DB_IN_PRODUCTION=true).';
       logger.fatal(msg);
       throw new Error(msg);
     }

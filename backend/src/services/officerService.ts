@@ -15,6 +15,7 @@ import {
 } from '../../../shared/types';
 import { calculateNetWeight, evaluateQuality, calculateMspPayment } from './procurementMath';
 import { defaultNotificationProvider } from './integrations/notificationProvider';
+import { notificationService } from './notifications';
 import { procurementService } from './procurementService';
 
 export class OfficerService {
@@ -22,12 +23,26 @@ export class OfficerService {
    * Get operational statistics & KPI metrics for an officer's Mandi centre.
    */
   async getOfficerStats(centreId?: string): Promise<any> {
-    const targetCentreId = centreId || store.getAllCentres()[0]?.id;
+    const dbCentres = await centreRepository.getAllCentres().catch(() => []);
+    const targetCentreId = centreId || dbCentres[0]?.id || store.getAllCentres()[0]?.id;
     const today = new Date().toISOString().split('T')[0];
 
-    const allProcurements = store.getAllProcurements().filter(p => !targetCentreId || p.centreId === targetCentreId);
-    const allTokens = store.getAllTokens().filter(t => !targetCentreId || t.centreId === targetCentreId);
-    const centrePayments = targetCentreId ? store.getPaymentsByCentre(targetCentreId) : store.getAllPayments();
+    const dbProcurements = await procurementRepository.getAllProcurements().catch(() => []);
+    const allProcurements = dbProcurements.length > 0
+      ? dbProcurements.filter(p => !targetCentreId || p.centreId === targetCentreId)
+      : store.getAllProcurements().filter(p => !targetCentreId || p.centreId === targetCentreId);
+
+    const dbTokens = await tokenRepository.getAllTokens().catch(() => []);
+    const allTokens = dbTokens.length > 0
+      ? dbTokens.filter(t => !targetCentreId || t.centreId === targetCentreId)
+      : store.getAllTokens().filter(t => !targetCentreId || t.centreId === targetCentreId);
+
+    const dbPayments = targetCentreId
+      ? await paymentRepository.findByCentreId(targetCentreId).catch(() => [])
+      : await paymentRepository.getAllPayments().catch(() => []);
+    const centrePayments = dbPayments.length > 0
+      ? dbPayments
+      : (targetCentreId ? store.getPaymentsByCentre(targetCentreId) : store.getAllPayments());
 
     const farmersServedToday = allProcurements.filter(p =>
       (p.bookedAt && p.bookedAt.startsWith(today)) ||
@@ -78,7 +93,9 @@ export class OfficerService {
     ).length;
 
     const failedPayments = centrePayments.filter(p => p.status === PaymentStatus.FAILED).length;
-    const isQueuePaused = targetCentreId ? store.isQueuePaused(targetCentreId) : false;
+    const isQueuePaused = targetCentreId
+      ? ((await centreRepository.isQueuePaused(targetCentreId).catch(() => null)) ?? store.isQueuePaused(targetCentreId))
+      : false;
 
     return {
       centreId: targetCentreId,
@@ -100,9 +117,18 @@ export class OfficerService {
    * Get the farmer currently being processed at the officer desk.
    */
   async getCurrentFarmerAtDesk(centreId?: string): Promise<any> {
-    const targetCentreId = centreId || store.getAllCentres()[0]?.id;
-    const allTokens = store.getAllTokens().filter(t => !targetCentreId || t.centreId === targetCentreId);
-    const allProcurements = store.getAllProcurements().filter(p => !targetCentreId || p.centreId === targetCentreId);
+    const dbCentres = await centreRepository.getAllCentres().catch(() => []);
+    const targetCentreId = centreId || dbCentres[0]?.id || store.getAllCentres()[0]?.id;
+
+    const dbTokens = await tokenRepository.getAllTokens().catch(() => []);
+    const allTokens = dbTokens.length > 0
+      ? dbTokens.filter(t => !targetCentreId || t.centreId === targetCentreId)
+      : store.getAllTokens().filter(t => !targetCentreId || t.centreId === targetCentreId);
+
+    const dbProcurements = await procurementRepository.getAllProcurements().catch(() => []);
+    const allProcurements = dbProcurements.length > 0
+      ? dbProcurements.filter(p => !targetCentreId || p.centreId === targetCentreId)
+      : store.getAllProcurements().filter(p => !targetCentreId || p.centreId === targetCentreId);
 
     // Look for in-progress procurement (CALLED, WEIGHING, QUALITY_CHECK, CALCULATED, PAYMENT_REVIEW, PAYMENT_PROCESSING)
     const inProgressStatuses = [
@@ -169,12 +195,15 @@ export class OfficerService {
     await tokenRepository.updateToken(token.id, { status: 'ACTIVE' }).catch(() => {});
     store.updateToken(token.id, { status: 'ACTIVE' });
 
-    // Send call alert to farmer
-    await defaultNotificationProvider.send({
-      userId: farmer.id,
-      title: 'Token Called — Proceed to Bay',
-      message: `Your token ${token.tokenNumber} has been called. Please proceed to Intake Bay.`,
-      type: NotificationType.QUEUE_APPROACHING,
+    // Send call alert to farmer via central NotificationService
+    const centre = await centreRepository.findById(centreId).catch(() => null);
+    await notificationService.dispatch({
+      type: 'FARMER_CALLED',
+      farmerId: farmer.id,
+      tokenId: token.id,
+      tokenNumber: token.tokenNumber,
+      centreName: centre?.name || 'Mandi Centre',
+      bayNumber: 1,
     }).catch(() => {});
 
     return {
@@ -232,6 +261,19 @@ export class OfficerService {
       weighingAt: now,
       scaleId,
     });
+
+    // Dispatch WEIGHING_COMPLETED event via NotificationService
+    const procForEvent = (await procurementRepository.findById(procurementId).catch(() => null)) || store.getProcurementById(procurementId);
+    if (procForEvent?.farmerId) {
+      await notificationService.dispatch({
+        type: 'WEIGHING_COMPLETED',
+        farmerId: procForEvent.farmerId,
+        procurementId,
+        grossWeight,
+        tareWeight,
+        netWeight,
+      }).catch(() => {});
+    }
 
     return {
       procurementId,
@@ -299,6 +341,17 @@ export class OfficerService {
       qualityCheckAt: now,
     });
 
+    // Dispatch QUALITY_COMPLETED event via NotificationService
+    if (proc.farmerId) {
+      await notificationService.dispatch({
+        type: 'QUALITY_COMPLETED',
+        farmerId: proc.farmerId,
+        procurementId,
+        grade: evaluation.grade,
+        qualityResult: evaluation.isAccepted ? 'ACCEPTED' : 'REJECTED',
+      }).catch(() => {});
+    }
+
     return {
       procurementId,
       qualityCheck,
@@ -344,7 +397,7 @@ export class OfficerService {
       paymentPendingAt: now,
     });
 
-    return {
+    const result = {
       procurementId: proc.id,
       netQuantity: calc.netQuantity,
       baseRate: calc.baseRate,
@@ -355,6 +408,19 @@ export class OfficerService {
       finalPayableAmount: calc.netAmount,
       status: ProcurementStatus.PAYMENT_PENDING,
     };
+
+    // Dispatch PROCUREMENT_COMPLETED event via NotificationService
+    if (proc.farmerId) {
+      await notificationService.dispatch({
+        type: 'PROCUREMENT_COMPLETED',
+        farmerId: proc.farmerId,
+        procurementId: proc.id,
+        produceType: cropType,
+        netAmount: calc.netAmount,
+      }).catch(() => {});
+    }
+
+    return result;
   }
 
   /**
@@ -389,8 +455,14 @@ export class OfficerService {
   }
 
   async getDailySettlement(centreId?: string): Promise<any> {
-    const targetCentreId = centreId || store.getAllCentres()[0]?.id;
-    const payments = targetCentreId ? store.getPaymentsByCentre(targetCentreId) : store.getAllPayments();
+    const dbCentres = await centreRepository.getAllCentres().catch(() => []);
+    const targetCentreId = centreId || dbCentres[0]?.id || store.getAllCentres()[0]?.id;
+    const dbPayments = targetCentreId
+      ? await paymentRepository.findByCentreId(targetCentreId).catch(() => [])
+      : await paymentRepository.getAllPayments().catch(() => []);
+    const payments = dbPayments.length > 0
+      ? dbPayments
+      : (targetCentreId ? store.getPaymentsByCentre(targetCentreId) : store.getAllPayments());
 
     const disbursed = payments
       .filter(p => p.status === PaymentStatus.COMPLETED || (p as any).status === 'SUCCESS')

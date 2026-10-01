@@ -8,12 +8,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (phone: string, password: string) => Promise<void>;
+  register: (data: { name: string; phone: string; password: string; role?: string; language?: string }) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null, token: null, isAuthenticated: false, loading: true,
-  login: async () => {}, logout: () => {},
+  login: async () => {}, register: async () => {}, logout: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -43,6 +44,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('kisansetu_user', JSON.stringify(newUser));
   };
 
+  const register = async (data: { name: string; phone: string; password: string; role?: string; language?: string }) => {
+    const res = await authAPI.register(data as any);
+    if (!res.data.data) {
+      throw new Error(res.data.error || 'Registration failed');
+    }
+    const { token: newToken, user: newUser } = res.data.data;
+    if (newToken && newUser) {
+      setToken(newToken);
+      setUser(newUser);
+      localStorage.setItem('kisansetu_token', newToken);
+      localStorage.setItem('kisansetu_user', JSON.stringify(newUser));
+    }
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -51,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated: !!token, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

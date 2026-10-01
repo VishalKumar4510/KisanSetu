@@ -16,7 +16,10 @@ export const authRateLimiter = rateLimit({
     success: false,
     error: 'Too many authentication attempts from this IP address. Please try again later.',
   },
-  skip: () => isTest,
+  skip: (req) =>
+    isTest ||
+    (config.NODE_ENV !== 'production' &&
+      (req.ip === '127.0.0.1' || req.ip === '::1' || req.ip?.includes('127.0.0.1'))),
 });
 
 /**

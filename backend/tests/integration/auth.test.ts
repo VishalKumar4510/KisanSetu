@@ -97,11 +97,12 @@ describe('Integration Tests: Authentication & Session Security', () => {
   });
 
   it('hashes password with bcrypt during registration and authenticates properly', async () => {
+    const regPhone = `98765${Math.floor(10000 + Math.random() * 90000)}`;
     const regRes = await request(app)
       .post('/api/auth/register')
       .send({
         name: 'Harpreet Singh',
-        phone: '9876543210',
+        phone: regPhone,
         password: 'SecurePass@123',
         role: 'FARMER',
         language: 'hi',
@@ -109,24 +110,24 @@ describe('Integration Tests: Authentication & Session Security', () => {
 
     expect(regRes.status).toBe(201);
     expect(regRes.body.success).toBe(true);
-    expect(regRes.body.data.user.phone).toBe('9876543210');
+    expect(regRes.body.data.user.phone).toBe(regPhone);
     expect(regRes.body.data.user.password).toBeUndefined();
 
     // Verify stored user in store has bcrypt hash, not plaintext
-    const storedUser = store.getUserByPhone('9876543210');
+    const storedUser = store.getUserByPhone(regPhone);
     expect(storedUser).toBeDefined();
     expect(storedUser?.password).toMatch(/^\$2b\$12\$/);
 
     // Verify login with correct password works
     const loginOk = await request(app)
       .post('/api/auth/login')
-      .send({ phone: '9876543210', password: 'SecurePass@123' });
+      .send({ phone: regPhone, password: 'SecurePass@123' });
     expect(loginOk.status).toBe(200);
 
     // Verify login with wrong password fails
     const loginFail = await request(app)
       .post('/api/auth/login')
-      .send({ phone: '9876543210', password: 'WrongPassword' });
+      .send({ phone: regPhone, password: 'WrongPassword' });
     expect(loginFail.status).toBe(401);
   });
 

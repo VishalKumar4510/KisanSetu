@@ -4,15 +4,15 @@ services:
     container_name: kisansetu-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: kisansetu
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-kisansetu}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
       - pgdata_volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d kisansetu"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-kisansetu}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,14 +27,15 @@ services:
     ports:
       - "3001:3001"
     environment:
-      NODE_ENV: production
-      PORT: 3001
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/kisansetu?schema=public
-      JWT_SECRET: kisansetu-production-environment-secret-key-min-32-chars!
-      ALLOWED_ORIGINS: http://localhost:80,http://localhost:5173,http://localhost,http://127.0.0.1
-      FRONTEND_URL: http://localhost:80
-      DEMO_MODE: "true"
-      LOG_LEVEL: info
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3001}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/kisansetu?schema=public}
+      JWT_SECRET: ${JWT_SECRET:-kisansetu-production-environment-secret-key-min-32-chars!}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:80,http://localhost:5173,http://localhost,http://127.0.0.1}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:80}
+      DEMO_MODE: ${DEMO_MODE:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-sandbox}
     depends_on:
       postgres:
         condition: service_healthy

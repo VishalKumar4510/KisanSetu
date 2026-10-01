@@ -11,6 +11,15 @@ describe('Integration Tests: Payment & DBT Settlement Operations', () => {
 
   beforeEach(async () => {
     store.reset();
+    try {
+      const { prisma } = await import('../../src/lib/prisma');
+      await prisma.payment.updateMany({
+        where: { id: { in: ['payment-0001', 'payment-0002', 'payment-0003'] } },
+        data: { status: 'PENDING', utr: null, dbtReferenceId: null, processedAt: null, providerStatus: null }
+      });
+    } catch {
+      // Prisma not available in this test environment
+    }
 
     const f = await request(app).post('/api/auth/login').send({ phone: 'farmer1', password: 'farmer1' });
     farmerToken = f.body.data.token;
@@ -132,7 +141,7 @@ describe('Integration Tests: Payment & DBT Settlement Operations', () => {
   });
 
   it('allows admin role to process DBT settlements via /api/payments/:id/process', async () => {
-    const pendingPayment = store.getAllPayments().find(p => p.status !== PaymentStatus.COMPLETED)!;
+    const pendingPayment = store.getAllPayments().find(p => p.id === 'payment-0002') || store.getAllPayments().find(p => p.status !== PaymentStatus.COMPLETED)!;
     expect(pendingPayment).toBeDefined();
 
     const res = await request(app)

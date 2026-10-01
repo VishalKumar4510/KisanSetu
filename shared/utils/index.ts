@@ -65,12 +65,14 @@ export function getCongestionBg(level: CongestionLevel): string {
 export function getPaymentStatusColor(status: PaymentStatus): string {
   const colors: Record<PaymentStatus, string> = {
     [PaymentStatus.PENDING]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    [PaymentStatus.CREATED]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     [PaymentStatus.VALIDATING]: 'bg-blue-100 text-blue-800 border-blue-200',
     [PaymentStatus.INITIATED]: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     [PaymentStatus.PROCESSING]: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     [PaymentStatus.COMPLETED]: 'bg-green-100 text-green-800 border-green-200',
     [PaymentStatus.SUCCESS]: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     [PaymentStatus.FAILED]: 'bg-red-100 text-red-800 border-red-200',
+    [PaymentStatus.REVERSED]: 'bg-purple-100 text-purple-800 border-purple-200',
   };
   return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
 }

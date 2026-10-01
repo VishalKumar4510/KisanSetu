@@ -2,7 +2,7 @@ import { Router } from 'express';
 import store from '../data/store';
 import { optionalAuth } from '../middleware/auth';
 import { asyncHandler } from '../middleware/errorHandler';
-import { PaymentStatus } from '../../../shared/types';
+import { PaymentStatus, MSP_RATES, ProduceType } from '../../../shared/types';
 
 const router = Router();
 
@@ -16,7 +16,12 @@ router.post('/query', optionalAuth, asyncHandler(async (req, res) => {
   let answerHi = '';
   let data: any = null;
 
-  if (q.includes('longest queue') || q.includes('सबसे लंबी कतार')) {
+  if (q.includes('msp') || q.includes('एमएसपी') || q.includes('rate') || q.includes('भाव') || q.includes('मूल्य')) {
+    answer = `Today's MSP Rates per Quintal: Wheat: ₹${MSP_RATES[ProduceType.WHEAT]}, Paddy: ₹${MSP_RATES[ProduceType.PADDY]}, Maize: ₹${MSP_RATES[ProduceType.MAIZE]}, Pulses: ₹${MSP_RATES[ProduceType.PULSES]}, Onion: ₹${MSP_RATES[ProduceType.ONION]}.`;
+    answerHi = `आज का न्यूनतम समर्थन मूल्य (एमएसपी) प्रति क्विंटल: गेहूं: ₹${MSP_RATES[ProduceType.WHEAT]}, धान: ₹${MSP_RATES[ProduceType.PADDY]}, मक्का: ₹${MSP_RATES[ProduceType.MAIZE]}, दालें: ₹${MSP_RATES[ProduceType.PULSES]}, प्याज: ₹${MSP_RATES[ProduceType.ONION]}।`;
+    data = { mspRates: MSP_RATES };
+  }
+  else if (q.includes('longest queue') || q.includes('सबसे लंबी कतार')) {
     const centres = store.getAllCentres();
     let maxQueue = 0, maxCentre = centres[0];
     centres.forEach(c => {
@@ -27,7 +32,7 @@ router.post('/query', optionalAuth, asyncHandler(async (req, res) => {
     answerHi = `${maxCentre.name} में सबसे लंबी कतार है, ${maxQueue} किसान प्रतीक्षा में हैं।`;
     data = { centreId: maxCentre.id, queueLength: maxQueue };
   }
-  else if (q.includes('earliest slot') || q.includes('पहला स्लॉट') || q.includes('सबसे पहला')) {
+  else if (q.includes('earliest') || q.includes('पहला स्लॉट') || q.includes('सबसे पहला')) {
     const slots = store.getAvailableSlots();
     if (slots.length > 0) {
       const earliest = slots.sort((a, b) => `${a.date}${a.timeStart}`.localeCompare(`${b.date}${b.timeStart}`))[0];
@@ -40,7 +45,7 @@ router.post('/query', optionalAuth, asyncHandler(async (req, res) => {
       answerHi = 'वर्तमान में कोई स्लॉट उपलब्ध नहीं है।';
     }
   }
-  else if (q.includes('token status') || q.includes('टोकन स्थिति') || q.includes('my token') || q.includes('मेरा टोकन')) {
+  else if (q.includes('token') || q.includes('टोकन')) {
     const fId = farmerId || req.user?.id;
     if (fId) {
       const token = store.getActiveTokenByFarmer(fId);
@@ -52,15 +57,12 @@ router.post('/query', optionalAuth, asyncHandler(async (req, res) => {
         answer = 'You don\'t have an active token. Book a slot first.';
         answerHi = 'आपके पास कोई सक्रिय टोकन नहीं है। पहले स्लॉट बुक करें।';
       }
+    } else {
+      answer = 'Please log in as a farmer to view your token status.';
+      answerHi = 'कृपया अपने टोकन की स्थिति देखने के लिए किसान के रूप में लॉगिन करें।';
     }
   }
-  else if (q.includes('how many') || q.includes('waiting') || q.includes('कितने किसान') || q.includes('प्रतीक्षा')) {
-    const count = store.getActiveQueueCount();
-    answer = `Currently ${count} farmers are waiting in queue across all centres.`;
-    answerHi = `वर्तमान में सभी केंद्रों पर ${count} किसान कतार में प्रतीक्षा कर रहे हैं।`;
-    data = { totalWaiting: count };
-  }
-  else if (q.includes('lowest waiting') || q.includes('shortest wait') || q.includes('सबसे कम प्रतीक्षा')) {
+  else if (q.includes('lowest waiting') || q.includes('shortest wait') || q.includes('least wait') || q.includes('कम प्रतीक्षा')) {
     const centres = store.getAllCentres();
     let minWait = Infinity, minCentre = centres[0];
     centres.forEach(c => {
@@ -71,6 +73,12 @@ router.post('/query', optionalAuth, asyncHandler(async (req, res) => {
     answer = `${minCentre.name} has the lowest waiting time of approximately ${minWait} minutes.`;
     answerHi = `${minCentre.name} में सबसे कम प्रतीक्षा समय है, लगभग ${minWait} मिनट।`;
     data = { centreId: minCentre.id, waitTime: minWait };
+  }
+  else if (q.includes('how many') || q.includes('waiting') || q.includes('कितने किसान') || q.includes('प्रतीक्षा')) {
+    const count = store.getActiveQueueCount();
+    answer = `Currently ${count} farmers are waiting in queue across all centres.`;
+    answerHi = `वर्तमान में सभी केंद्रों पर ${count} किसान कतार में प्रतीक्षा कर रहे हैं।`;
+    data = { totalWaiting: count };
   }
   else if (q.includes('payment') || q.includes('भुगतान')) {
     const fId = farmerId || req.user?.id;
@@ -84,6 +92,9 @@ router.post('/query', optionalAuth, asyncHandler(async (req, res) => {
         answer = 'No payment records found for you.';
         answerHi = 'आपके लिए कोई भुगतान रिकॉर्ड नहीं मिला।';
       }
+    } else {
+      answer = 'Please log in as a farmer to check your payment status.';
+      answerHi = 'कृपया अपने भुगतान की स्थिति देखने के लिए किसान के रूप में लॉगिन करें।';
     }
   }
   else {

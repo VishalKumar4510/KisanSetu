@@ -33,12 +33,14 @@ enum ProcurementStatus {
 
 enum PaymentStatus {
   PENDING
+  CREATED
   VALIDATING
   INITIATED
   PROCESSING
   COMPLETED
   SUCCESS
   FAILED
+  REVERSED
 }
 
 enum ProduceType {
@@ -134,6 +136,7 @@ model Centre {
   status              String          @default("ACTIVE")
   congestionLevel     CongestionLevel @default(GREEN)
   contactPhone        String
+  isQueuePaused       Boolean         @default(false)
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @default(now()) @updatedAt
 
@@ -299,6 +302,11 @@ model Payment {
   completedAt    DateTime?
   processedAt    DateTime?
   failureReason  String?
+  providerName   String?
+  providerReference String?
+  idempotencyKey String?
+  webhookEventId String?
+  providerStatus String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @default(now()) @updatedAt
 

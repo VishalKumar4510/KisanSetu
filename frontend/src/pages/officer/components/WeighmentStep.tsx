@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Modal, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal';
 import { useToast } from '@/components/ui/toast';
+import { CurrentFarmerData } from '@shared/types';
 
 export interface ScaleItem {
   id: string;
@@ -21,7 +22,7 @@ export interface ScaleItem {
 }
 
 interface WeighmentStepProps {
-  currentFarmerData: any;
+  currentFarmerData: CurrentFarmerData | null;
   weighingForm: {
     grossWeight: string;
     tareWeight: string;
@@ -116,12 +117,12 @@ export const WeighmentStep: React.FC<WeighmentStepProps> = ({
           </span>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black font-mono tracking-tight text-white">
-              {isWeighed ? currentFarmerData.weighing.netWeight : Math.max(0, netNum).toFixed(2)}
+              {isWeighed && currentFarmerData?.weighing ? currentFarmerData.weighing.netWeight : Math.max(0, netNum).toFixed(2)}
             </span>
             <span className="text-emerald-400 font-bold text-sm">Quintals (Qt)</span>
           </div>
           <span className="text-[11px] text-slate-400 font-mono">
-            Net Weight = Gross ({isWeighed ? currentFarmerData.weighing.grossWeight : grossNum.toFixed(2)} Qt) − Tare ({isWeighed ? currentFarmerData.weighing.tareWeight : tareNum.toFixed(2)} Qt)
+            Net Weight = Gross ({isWeighed && currentFarmerData?.weighing ? currentFarmerData.weighing.grossWeight : grossNum.toFixed(2)} Qt) − Tare ({isWeighed && currentFarmerData?.weighing ? currentFarmerData.weighing.tareWeight : tareNum.toFixed(2)} Qt)
           </span>
         </div>
 
@@ -184,7 +185,7 @@ export const WeighmentStep: React.FC<WeighmentStepProps> = ({
         <div>
           <label className="text-xs text-slate-700 font-semibold block mb-1">Net Produce (Qt)</label>
           <div className="p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl font-mono font-black text-emerald-900 flex items-center justify-between">
-            <span>{isWeighed ? currentFarmerData.weighing.netWeight : Math.max(0, netNum)} Qt</span>
+            <span>{isWeighed && currentFarmerData?.weighing ? currentFarmerData.weighing.netWeight : Math.max(0, netNum)} Qt</span>
             {isWeighed && <Lock className="w-3.5 h-3.5 text-emerald-600" />}
           </div>
         </div>

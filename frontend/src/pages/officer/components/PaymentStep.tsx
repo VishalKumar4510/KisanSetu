@@ -15,17 +15,18 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
 import { Modal, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal';
+import { CurrentFarmerData, Procurement, CalculationData, PaymentReviewData } from '@shared/types';
 
 interface PaymentStepProps {
-  currentFarmerData: any;
-  currentProc: any;
-  calculationData: any;
+  currentFarmerData: CurrentFarmerData | null;
+  currentProc: Procurement | null;
+  calculationData: CalculationData | null;
   paymentStep: number;
   paymentProcessing: boolean;
   paymentError: string | null;
   activeSubStep: 5 | 6;
   showReviewModal: boolean;
-  reviewData: any;
+  reviewData: PaymentReviewData | null;
   setShowReviewModal: (show: boolean) => void;
   onOpenReviewModal: () => void;
   onInitiatePayment: () => void;
@@ -56,10 +57,10 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
     currentFarmerData?.payment?.amount ||
     0;
 
-  const farmer = currentFarmerData?.farmer || {};
-  const maskedAcc = farmer.maskedBankAccount || reviewData?.maskedBankAccount || '•••• •••• •••• 4138';
-  const bankName = farmer.bankName || reviewData?.bankName || 'State Bank of India';
-  const ifsc = farmer.ifsc || reviewData?.ifsc || 'SBIN0001234';
+  const farmer = currentFarmerData?.farmer;
+  const maskedAcc = farmer?.maskedBankAccount || reviewData?.maskedBankAccount || '•••• •••• •••• 4138';
+  const bankName = farmer?.bankName || reviewData?.bankName || 'State Bank of India';
+  const ifsc = farmer?.ifsc || reviewData?.ifsc || 'SBIN0001234';
 
   const handleConfirmAuthorize = () => {
     setShowReviewModal(false);
@@ -108,8 +109,8 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             </div>
             <div className="text-right text-xs">
               <span className="text-slate-500 block text-[11px]">Beneficiary Name</span>
-              <span className="font-bold text-slate-900 text-sm">{farmer.name || reviewData?.farmerName}</span>
-              <span className="text-[10px] text-slate-500 font-mono block">Kisan ID: {farmer.farmerId || reviewData?.farmerId}</span>
+              <span className="font-bold text-slate-900 text-sm">{farmer?.name || reviewData?.farmerName}</span>
+              <span className="text-[10px] text-slate-500 font-mono block">Kisan ID: {farmer?.farmerId || reviewData?.farmerId}</span>
             </div>
           </div>
 
@@ -345,7 +346,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-sans">Net Quantity:</span>
-                  <span className="font-bold text-slate-900">{reviewData.quantity} Qt</span>
+                  <span className="font-bold text-slate-900">{reviewData.quantity ?? reviewData.netQuantity} Qt</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-sans">Bank & IFSC:</span>

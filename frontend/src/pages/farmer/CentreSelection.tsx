@@ -63,7 +63,7 @@ export default function CentreSelection() {
       setLoading(true);
       setError(null);
       const res = await centreAPI.getAll();
-      setCentres(res.data.data?.centres || res.data.data || []);
+      setCentres(res.data.data || []);
     } catch (err: any) {
       setError(
         err.response?.data?.error ||

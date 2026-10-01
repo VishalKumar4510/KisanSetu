@@ -104,3 +104,29 @@ export interface ChartDataRequest {
   period: 'today' | '7d' | '30d';
   centreId?: string;
 }
+
+// ==================== OFFICER WORKFLOW ====================
+
+export interface SubmitWeighmentRequest {
+  procurementId: string;
+  grossWeight: number;
+  tareWeight: number;
+  scaleId?: string;
+}
+
+export interface SubmitQualityRequest {
+  procurementId: string;
+  crop?: string;
+  moistureContent: number;
+  foreignMatter?: number;
+  damagedGrains?: number;
+  grade?: string;
+  qualityResult: 'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW';
+  remarks?: string;
+}
+
+export interface CallFarmerRequest {
+  centreId: string;
+  tokenId?: string;
+}
+

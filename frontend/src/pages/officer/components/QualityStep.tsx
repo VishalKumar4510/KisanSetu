@@ -10,19 +10,12 @@ import {
   AlertOctagon,
 } from 'lucide-react';
 import { Modal, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal';
+import { CurrentFarmerData, QualityFormData } from '@shared/types';
 
 interface QualityStepProps {
-  currentFarmerData: any;
-  qualityForm: {
-    crop: string;
-    moistureContent: string;
-    foreignMatter: string;
-    damagedGrains: string;
-    grade: string;
-    qualityResult: 'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW';
-    remarks: string;
-  };
-  setQualityForm: React.Dispatch<React.SetStateAction<any>>;
+  currentFarmerData: CurrentFarmerData | null;
+  qualityForm: QualityFormData;
+  setQualityForm: React.Dispatch<React.SetStateAction<QualityFormData>>;
   isCompleted: boolean;
   refreshing: boolean;
   onSubmitQuality: () => void;
@@ -190,7 +183,7 @@ export const QualityStep: React.FC<QualityStepProps> = ({
           <label className="text-xs text-slate-700 font-semibold block mb-1">Decision</label>
           <select
             value={qualityForm.qualityResult}
-            onChange={(e) => setQualityForm({ ...qualityForm, qualityResult: e.target.value as any })}
+            onChange={(e) => setQualityForm({ ...qualityForm, qualityResult: e.target.value as QualityFormData['qualityResult'] })}
             disabled={isQcCompleted}
             className={`w-full p-2.5 bg-slate-50 border rounded-xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-600/30 disabled:opacity-75 ${
               qualityForm.qualityResult === 'REJECTED'

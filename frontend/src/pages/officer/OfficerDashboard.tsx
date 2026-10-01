@@ -32,7 +32,7 @@ import { WeighmentStep, ScaleItem } from './components/WeighmentStep';
 import { QualityStep } from './components/QualityStep';
 import { ProcurementStep } from './components/ProcurementStep';
 import { PaymentStep } from './components/PaymentStep';
-import { PaymentHistory } from './components/PaymentHistory';
+import { PaymentHistory, PaymentHistoryItem } from './components/PaymentHistory';
 import { FarmerHistory } from './components/FarmerHistory';
 import { AlertsPanel } from './components/AlertsPanel';
 import { EquipmentPanel } from './components/EquipmentPanel';
@@ -40,6 +40,17 @@ import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SettlementPanel } from './components/SettlementPanel';
 import { AuditTimeline } from './components/AuditTimeline';
 import { ReceiptModal } from './components/ReceiptModal';
+import {
+  Centre,
+  CurrentFarmerData,
+  SettlementData,
+  SettlementSummary,
+  FarmerHistoryData,
+  CalculationData,
+  PaymentReviewData,
+  ReceiptData,
+  QualityFormData,
+} from '@shared/types';
 
 export default function OfficerDashboard() {
   const { user, logout } = useAuth();
@@ -47,16 +58,16 @@ export default function OfficerDashboard() {
   const { toast } = useToast();
 
   // Core State
-  const [centres, setCentres] = useState<any[]>([]);
+  const [centres, setCentres] = useState<Centre[]>([]);
   const [selectedCentre, setSelectedCentre] = useState('');
   const [stats, setStats] = useState<OfficerStats | null>(null);
   const [queueList, setQueueList] = useState<QueueRow[]>([]);
-  const [currentFarmerData, setCurrentFarmerData] = useState<any>(null);
+  const [currentFarmerData, setCurrentFarmerData] = useState<CurrentFarmerData | null>(null);
   const [scales, setScales] = useState<ScaleItem[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
   const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
-  const [settlementData, setSettlementData] = useState<any>(null);
+  const [settlementData, setSettlementData] = useState<SettlementData | SettlementSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isQueuePaused, setIsQueuePaused] = useState(false);
@@ -77,7 +88,7 @@ export default function OfficerDashboard() {
 
   // Lower Section Active Tab
   const [activeLowerTab, setActiveLowerTab] = useState<'reconciliation' | 'history' | 'analytics' | 'settlement' | 'timeline'>('reconciliation');
-  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryItem[]>([]);
   const [paymentFilter, setPaymentFilter] = useState('all');
 
   // Timeline Expand Toggle
@@ -85,7 +96,7 @@ export default function OfficerDashboard() {
 
   // Selected Farmer for History Panel
   const [historyFarmerId, setHistoryFarmerId] = useState<string | null>(null);
-  const [farmerHistoryData, setFarmerHistoryData] = useState<any>(null);
+  const [farmerHistoryData, setFarmerHistoryData] = useState<FarmerHistoryData | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Weighment form
@@ -96,29 +107,29 @@ export default function OfficerDashboard() {
   });
 
   // Quality assessment form
-  const [qualityForm, setQualityForm] = useState({
+  const [qualityForm, setQualityForm] = useState<QualityFormData>({
     crop: 'WHEAT',
     moistureContent: '11.4',
     foreignMatter: '0.35',
     damagedGrains: '0.80',
     grade: 'A',
-    qualityResult: 'ACCEPTED' as 'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW',
+    qualityResult: 'ACCEPTED',
     remarks: 'Produce meets FAQ standard specifications.',
   });
 
   // Procurement calculation state
-  const [calculationData, setCalculationData] = useState<any>(null);
+  const [calculationData, setCalculationData] = useState<CalculationData | null>(null);
 
   // Payment Review Modal & Processing simulation state
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewData, setReviewData] = useState<any>(null);
+  const [reviewData, setReviewData] = useState<PaymentReviewData | null>(null);
   const [paymentStep, setPaymentStep] = useState<number>(0);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Digital Receipt Modal & PDF Download state
   const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [receiptData, setReceiptData] = useState<any>(null);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -165,22 +176,35 @@ export default function OfficerDashboard() {
         setStats(statsRes.data.data);
         setIsQueuePaused(Boolean(statsRes.data.data.isQueuePaused));
       }
-      if (queueRes.data?.data?.items) {
-        setQueueList(queueRes.data.data.items);
-        if (queueRes.data.data.isQueuePaused !== undefined) {
-          setIsQueuePaused(queueRes.data.data.isQueuePaused);
+      if (queueRes.data?.data) {
+        const qData = queueRes.data.data;
+        if (Array.isArray(qData)) {
+          setQueueList(qData as unknown as QueueRow[]);
+        } else if (qData && typeof qData === 'object' && 'items' in qData) {
+          const queueObj = qData as { items: QueueRow[]; isQueuePaused?: boolean };
+          setQueueList(queueObj.items || []);
+          if (queueObj.isQueuePaused !== undefined) {
+            setIsQueuePaused(queueObj.isQueuePaused);
+          }
         }
       }
-      if (paymentsRes.data?.data) setPaymentHistory(paymentsRes.data.data);
+      if (paymentsRes.data?.data) setPaymentHistory(paymentsRes.data.data as PaymentHistoryItem[]);
       if (alertsRes.data?.data) {
-        setAlerts(alertsRes.data.data.alerts || []);
-        setUnreadAlertsCount(alertsRes.data.data.unreadCount || 0);
+        const aData = alertsRes.data.data;
+        if (Array.isArray(aData)) {
+          setAlerts(aData as AlertItem[]);
+          setUnreadAlertsCount(aData.filter((a) => !a.read).length);
+        } else if (aData && typeof aData === 'object') {
+          const alertObj = aData as { alerts?: AlertItem[]; unreadCount?: number };
+          setAlerts(alertObj.alerts || []);
+          setUnreadAlertsCount(alertObj.unreadCount || 0);
+        }
       }
-      if (scalesRes.data?.data) setScales(scalesRes.data.data || []);
+      if (scalesRes.data?.data) setScales(scalesRes.data.data as ScaleItem[] || []);
       if (settlementRes.data?.data) setSettlementData(settlementRes.data.data);
 
       const activeFarmer = currentRes.data?.data;
-      setCurrentFarmerData(activeFarmer);
+      setCurrentFarmerData(activeFarmer || null);
 
       // Pre-fill forms if active farmer exists
       if (activeFarmer) {
@@ -393,7 +417,9 @@ export default function OfficerDashboard() {
       setRefreshing(true);
       const res = await officerAPI.callFarmer(selectedCentre, tokenId);
       if (res.data?.data) {
-        toast.success('Farmer Called', `Token ${res.data.data.tokenNumber || tokenId || ''} called to station.`);
+        const tokenData = res.data.data;
+        const tokenNum = (tokenData as any)?.token?.tokenNumber || (tokenData as any)?.tokenNumber || tokenId || '';
+        toast.success('Farmer Called', `Token ${tokenNum} called to station.`);
         setUserSelectedStep(null);
         await fetchDashboardData(false);
       } else {
@@ -572,16 +598,16 @@ export default function OfficerDashboard() {
     }
   };
 
-  const handleDownloadPdf = async (target?: string | any) => {
+  const handleDownloadPdf = async (target?: string | ReceiptData) => {
     try {
       setDownloadingPdf(true);
       setDownloadError(null);
-      let data = typeof target === 'object' && target !== null ? target : null;
+      let data: ReceiptData | null = typeof target === 'object' && target !== null ? target : null;
       if (!data) {
         const procId = typeof target === 'string' ? target : (currentFarmerData?.procurement?.id || receiptData?.procurement?.id);
         if (procId) {
           const res = await officerAPI.getReceipt(procId);
-          data = res.data?.data;
+          data = res.data?.data || null;
           setReceiptData(data);
         } else if (receiptData) {
           data = receiptData;
@@ -815,7 +841,7 @@ export default function OfficerDashboard() {
                     {(activeStep === 5 || activeStep === 6) && (
                       <PaymentStep
                         currentFarmerData={currentFarmerData}
-                        currentProc={currentProc}
+                        currentProc={currentProc || null}
                         calculationData={calculationData}
                         paymentStep={paymentStep}
                         paymentProcessing={paymentProcessing}
@@ -1051,11 +1077,11 @@ export default function OfficerDashboard() {
             className="flex items-center gap-1.5 pt-3 pb-3 border-b border-slate-100 overflow-x-auto text-xs"
           >
             {[
-              { id: 'reconciliation', label: 'Payments', icon: Shield },
-              { id: 'history', label: 'Farmer History', icon: History },
-              { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-              { id: 'settlement', label: 'Settlement', icon: FileText },
-              { id: 'timeline', label: 'Audit', icon: Activity },
+              { id: 'reconciliation' as const, label: 'Payments', icon: Shield },
+              { id: 'history' as const, label: 'Farmer History', icon: History },
+              { id: 'analytics' as const, label: 'Analytics', icon: BarChart2 },
+              { id: 'settlement' as const, label: 'Settlement', icon: FileText },
+              { id: 'timeline' as const, label: 'Audit', icon: Activity },
             ].map((tab) => {
               const isActive = activeLowerTab === tab.id;
               return (
@@ -1067,7 +1093,7 @@ export default function OfficerDashboard() {
                   aria-controls={`panel-${tab.id}`}
                   aria-selected={isActive}
                   tabIndex={isActive ? 0 : -1}
-                  onClick={() => setActiveLowerTab(tab.id as any)}
+                  onClick={() => setActiveLowerTab(tab.id)}
                   className={`px-3.5 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 whitespace-nowrap text-xs border focus:outline-none focus:ring-2 focus:ring-slate-400 ${
                     isActive
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'

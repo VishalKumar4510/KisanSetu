@@ -42,7 +42,7 @@ export default function LiveQueueManagement() {
     }
   };
 
-  const handleUpdateStatus = async (procId: string, status: string, data?: any) => {
+  const handleUpdateStatus = async (procId: string, status: string, data?: Record<string, unknown>) => {
     try { 
       await procurementAPI.updateStatus(procId, { status, ...data }); 
       toast.success('Status Updated', `Procurement moved to ${status}`);

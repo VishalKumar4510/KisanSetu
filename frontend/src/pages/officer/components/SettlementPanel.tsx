@@ -2,11 +2,12 @@ import React from 'react';
 import { Printer, X } from 'lucide-react';
 import { OfficerStats } from './MetricsPanel';
 import { formatCurrency } from '../../../utils/formatters';
+import { SettlementData, SettlementSummary, User } from '@shared/types';
 
 interface SettlementPanelProps {
-  settlementData: any;
+  settlementData: SettlementData | SettlementSummary | null;
   stats: OfficerStats | null;
-  user: any;
+  user: User | null;
   showDailyReportModal: boolean;
   setShowDailyReportModal: (show: boolean) => void;
 }

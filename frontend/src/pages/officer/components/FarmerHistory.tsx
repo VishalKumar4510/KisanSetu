@@ -1,9 +1,10 @@
 import React from 'react';
 import { FileText, Download } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
+import { FarmerHistoryData, FarmerProcurementRecord } from '@shared/types';
 
 interface FarmerHistoryProps {
-  farmerHistoryData: any;
+  farmerHistoryData: FarmerHistoryData | null;
   loadingHistory: boolean;
   onViewReceipt: (procurementId: string) => void;
   onDownloadReceipt: (procurementId: string) => void;
@@ -82,7 +83,7 @@ export const FarmerHistory: React.FC<FarmerHistoryProps> = ({
                 </td>
               </tr>
             ) : (
-              farmerHistoryData.records?.map((rec: any) => {
+              farmerHistoryData.records?.map((rec: FarmerProcurementRecord) => {
                 const isCompleted =
                   rec.paymentStatus === 'COMPLETED' || rec.paymentStatus === 'SUCCESS';
 

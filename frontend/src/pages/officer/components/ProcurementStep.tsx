@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
 import { Modal, ModalHeader, ModalTitle, ModalDescription, ModalBody, ModalFooter } from '@/components/ui/modal';
+import { CalculationData } from '@shared/types';
 
 interface ProcurementStepProps {
-  calculationData: any;
+  calculationData: CalculationData | null;
   isCompleted: boolean;
   refreshing: boolean;
   onCalculate: () => void;

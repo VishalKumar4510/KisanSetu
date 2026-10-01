@@ -1,13 +1,14 @@
 import React from 'react';
 import { Phone } from 'lucide-react';
+import { CurrentFarmerData, CalculationData, Centre } from '@shared/types';
 
 interface CurrentFarmerHeaderProps {
-  currentFarmerData: any;
+  currentFarmerData: CurrentFarmerData | null;
   currentStatus: string;
-  centres: any[];
+  centres: Centre[];
   selectedCentre: string;
   crop: string;
-  calculationData: any;
+  calculationData: CalculationData | null;
   isQueuePaused: boolean;
   onCallFarmer: () => void;
 }

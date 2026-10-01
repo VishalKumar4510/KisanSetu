@@ -39,7 +39,7 @@ interface PaymentData {
   deductions: number;
   netAmount: number;
   cess?: number;
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | string;
   dbtReferenceId?: string;
   transactionId?: string;
   utr?: string;
@@ -133,7 +133,7 @@ export default function PaymentStatus() {
       else setLoading(true);
       setError(null);
       const res = await paymentAPI.getCurrent(user?.farmerId);
-      setPayment(res.data.data);
+      setPayment(res.data.data as unknown as PaymentData | null);
     } catch (err: any) {
       setError(
         err.response?.data?.error ||

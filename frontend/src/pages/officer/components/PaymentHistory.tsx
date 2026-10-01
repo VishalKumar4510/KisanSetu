@@ -1,9 +1,15 @@
 import React from 'react';
 import { FileText, Download } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
+import { Payment } from '@shared/types';
+
+export interface PaymentHistoryItem extends Payment {
+  farmerName?: string;
+  tokenNumber?: string;
+}
 
 interface PaymentHistoryProps {
-  paymentHistory: any[];
+  paymentHistory: PaymentHistoryItem[];
   paymentFilter: string;
   setPaymentFilter: (st: string) => void;
   onViewReceipt: (procurementId: string) => void;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { procurementAPI } from '../../services/api';
-import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Scale, FlaskConical, CreditCard, Package } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Scale, FlaskConical, CreditCard, Package, LucideIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -21,7 +21,7 @@ export default function ProcurementManagement() {
     try { const res = await procurementAPI.getAll(); setProcs(res.data.data || []); } catch {} finally { setLoading(false); }
   };
 
-  const handleTransition = async (id: string, status: string, data?: any) => {
+  const handleTransition = async (id: string, status: string, data?: Record<string, unknown>) => {
     try { 
       await procurementAPI.updateStatus(id, { status, ...data }); 
       toast.success('Status Updated', `Procurement moved to ${status.replace(/_/g, ' ')}`);
@@ -33,7 +33,7 @@ export default function ProcurementManagement() {
   };
 
   const getNextAction = (status: string, procId: string) => {
-    const actions: Record<string, { label: string; next: string; icon: any; color: string }> = {
+    const actions: Record<string, { label: string; next: string; icon: LucideIcon; color: string }> = {
       BOOKED: { label: 'Mark Arrived', next: 'ARRIVED', icon: CheckCircle, color: 'bg-yellow-500' },
       ARRIVED: { label: 'Gate Entry', next: 'GATE_ENTRY', icon: CheckCircle, color: 'bg-orange-500' },
       GATE_ENTRY: { label: 'Start Weighing', next: 'WEIGHING', icon: Scale, color: 'bg-purple-500' },
@@ -138,7 +138,7 @@ export default function ProcurementManagement() {
                   {/* Action button */}
                   {action && (
                     <button onClick={() => {
-                      let extra: any = {};
+                      let extra: Record<string, unknown> = {};
                       if (proc.status === 'GATE_ENTRY') extra = { weighingData: { grossWeight: Number(weighing.grossWeight) || 12.5, tareWeight: Number(weighing.tareWeight) || 0.5, netWeight: (Number(weighing.grossWeight) || 12.5) - (Number(weighing.tareWeight) || 0.5) } };
                       if (proc.status === 'WEIGHING') extra = { qualityData: { moistureContent: Number(quality.moistureContent) || 11.2, grade: quality.grade, accepted: true, remarks: quality.remarks || 'Good quality', foreignMatter: 0.3 } };
                       handleTransition(proc.id, action.next, extra);

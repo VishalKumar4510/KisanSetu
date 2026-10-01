@@ -13,21 +13,8 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
 
-export interface OfficerStats {
-  farmersServedToday: number;
-  waitingFarmers: number;
-  completedFarmers: number;
-  completedLots?: number;
-  rejectedLots?: number;
-  totalQuantityProcured: number;
-  totalProcurementValue: number;
-  paymentsCompleted: number;
-  paymentsPending: number;
-  failedPayments?: number;
-  avgWaitTime?: number;
-  avgServiceTime?: number;
-  isQueuePaused?: boolean;
-}
+import { OfficerStats } from '@shared/types';
+export type { OfficerStats };
 
 interface MetricsPanelProps {
   stats: OfficerStats | null;

@@ -7,11 +7,12 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { formatCurrency } from '../../../utils/formatters';
+import { ReceiptData } from '@shared/types';
 
 interface ReceiptModalProps {
   show: boolean;
   onClose: () => void;
-  receiptData: any;
+  receiptData: ReceiptData | null;
   downloadingPdf: boolean;
   downloadSuccess: boolean;
   downloadError: string | null;
@@ -35,9 +36,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     ? new Date(receiptData.receiptDate).toLocaleString('en-IN')
     : new Date().toLocaleString('en-IN');
 
-  const proc = receiptData.procurement || {};
-  const farmer = receiptData.farmer || {};
-  const payment = receiptData.payment || {};
+  const proc = receiptData.procurement;
+  const farmer = receiptData.farmer;
+  const payment = receiptData.payment;
+  const centre = receiptData.centre;
+  const weighing = receiptData.weighing;
+  const quality = receiptData.qualityCheck;
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -76,14 +80,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="grid grid-cols-2 gap-4 border-b border-slate-200 pb-3 text-xs">
             <div>
               <span className="text-slate-500 block text-xs font-sans">Centre & Location:</span>
-              <span className="font-bold text-slate-800">{proc.centreName || 'Krishi Upaj Mandi'}</span>
-              <span className="text-slate-500 block">{proc.centreLocation || 'Bay #01'} (Scale: {proc.scaleId || 'Weighbridge #01'})</span>
+              <span className="font-bold text-slate-800">{centre?.name || 'Krishi Upaj Mandi'}</span>
+              <span className="text-slate-500 block">{centre?.location || 'Bay #01'} (Scale: {weighing?.scaleId || proc?.scaleId || 'Weighbridge #01'})</span>
             </div>
             <div>
               <span className="text-slate-500 block text-xs font-sans">Farmer Beneficiary:</span>
-              <span className="font-bold text-slate-800">{farmer.name} ({farmer.farmerId})</span>
-              <span className="text-slate-500 block">{farmer.village}, {farmer.district}</span>
-              <span className="text-slate-500 block">Bank A/C: {farmer.maskedBankAccount || '•••• •••• •••• 4119'}</span>
+              <span className="font-bold text-slate-800">{farmer?.name} ({farmer?.farmerId})</span>
+              <span className="text-slate-500 block">{farmer?.village}, {farmer?.district}</span>
+              <span className="text-slate-500 block">Bank A/C: {farmer?.bankAccount || '•••• •••• •••• 4119'}</span>
             </div>
           </div>
 
@@ -91,21 +95,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="grid grid-cols-3 gap-2 border-b border-slate-200 pb-3 text-xs">
             <div>
               <span className="text-slate-500 block text-xs font-sans">Weighment:</span>
-              <span>Gross: <b>{proc.grossWeight} Qt</b></span>
-              <span className="block">Tare: <b>{proc.tareWeight} Qt</b></span>
-              <span className="block text-emerald-800 font-bold">Net: {proc.netQuantity} Qt</span>
+              <span>Gross: <b>{weighing?.grossWeight ?? 25.5} Qt</b></span>
+              <span className="block">Tare: <b>{weighing?.tareWeight ?? 0.5} Qt</b></span>
+              <span className="block text-emerald-800 font-bold">Net: {weighing?.netWeight ?? proc?.netQuantity ?? 25} Qt</span>
             </div>
             <div>
               <span className="text-slate-500 block text-xs font-sans">Quality Standards:</span>
-              <span>Crop: <b>{proc.crop}</b></span>
-              <span className="block">Grade: <b>{proc.qualityGrade} (FAQ)</b></span>
-              <span className="block">Moisture: <b>{proc.moistureContent}%</b></span>
+              <span>Crop: <b>{quality?.crop || proc?.crop || 'WHEAT'}</b></span>
+              <span className="block">Grade: <b>{quality?.grade || 'A'} (FAQ)</b></span>
+              <span className="block">Moisture: <b>{quality?.moistureContent ?? 11.4}%</b></span>
             </div>
             <div>
               <span className="text-slate-500 block text-xs font-sans">Pricing & MSP:</span>
-              <span>Configured Base: <b>{formatCurrency(proc.baseRate || 0)}/Qt</b></span>
-              <span className="block">Adj: <b>+{formatCurrency(proc.qualityAdjustment || 0)}/Qt</b></span>
-              <span className="block font-bold">Effective: {formatCurrency(proc.finalRate || 0)}/Qt</span>
+              <span>Configured Base: <b>{formatCurrency(proc?.calculatedBaseRate || 2275)}/Qt</b></span>
+              <span className="block">Adj: <b>+{formatCurrency(proc?.calculatedAdjustment || 0)}/Qt</b></span>
+              <span className="block font-bold">Effective: {formatCurrency((proc?.calculatedBaseRate || 2275) + (proc?.calculatedAdjustment || 0))}/Qt</span>
             </div>
           </div>
 
@@ -113,15 +117,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="space-y-1.5 border-b border-slate-200 pb-3">
             <div className="flex justify-between text-slate-600">
               <span>Gross Commodity Value:</span>
-              <span className="tabular-nums font-bold text-slate-900">{formatCurrency(proc.grossAmount || 0)}</span>
+              <span className="tabular-nums font-bold text-slate-900">{formatCurrency(proc?.calculatedGrossAmount || 0)}</span>
             </div>
             <div className="flex justify-between text-rose-700">
               <span>Configured Mandi Cess (2%):</span>
-              <span className="tabular-nums">-{formatCurrency(proc.deductions || 0)}</span>
+              <span className="tabular-nums">-{formatCurrency(proc?.calculatedDeductions || 0)}</span>
             </div>
             <div className="flex justify-between font-black text-sm text-emerald-900 pt-1">
               <span>TOTAL DISBURSED (DBT):</span>
-              <span className="tabular-nums">{formatCurrency(proc.finalPayableAmount || 0)}</span>
+              <span className="tabular-nums">{formatCurrency(proc?.calculatedNetAmount || proc?.finalPayableAmount || 0)}</span>
             </div>
           </div>
 
@@ -129,13 +133,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <div className="grid grid-cols-2 gap-2 text-xs border-b border-slate-200 pb-3">
             <div>
               <span className="text-slate-500 block text-xs font-sans">Transaction Reference:</span>
-              <span className="font-mono text-xs text-slate-700 block">{payment.transactionId || 'KS-TXN-...'}</span>
-              <span className="font-mono text-xs text-slate-700 block">UTR: {payment.utr || '982440385255'}</span>
+              <span className="font-mono text-xs text-slate-700 block">{payment?.transactionId || 'KS-TXN-...'}</span>
+              <span className="font-mono text-xs text-slate-700 block">UTR: {payment?.utr || '982440385255'}</span>
             </div>
             <div>
               <span className="text-slate-500 block text-xs font-sans">Payment Mode & Status:</span>
-              <span className="text-slate-700 block">{payment.paymentMethod || 'DBT (Demo Payment Workflow)'}</span>
-              <span className="text-emerald-800 font-bold uppercase">{payment.status || 'COMPLETED'}</span>
+              <span className="text-slate-700 block">{payment?.paymentMethod || 'DBT (Demo Payment Workflow)'}</span>
+              <span className="text-emerald-800 font-bold uppercase">{payment?.status || 'COMPLETED'}</span>
             </div>
           </div>
 

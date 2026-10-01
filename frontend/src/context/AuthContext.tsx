@@ -1,14 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI } from '../services/api';
-
-interface User {
-  id: string;
-  name: string;
-  phone: string;
-  role: string;
-  farmerId?: string;
-  language?: string;
-}
+import { User } from '@shared/types';
 
 interface AuthContextType {
   user: User | null;
@@ -41,6 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (phone: string, password: string) => {
     const res = await authAPI.login(phone, password);
+    if (!res.data.data) {
+      throw new Error(res.data.error || 'Login failed');
+    }
     const { token: newToken, user: newUser } = res.data.data;
     setToken(newToken);
     setUser(newUser);

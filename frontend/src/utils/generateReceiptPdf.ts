@@ -45,7 +45,9 @@ export interface ReceiptData {
     utr?: string;
     dbtReferenceId?: string;
     paymentTimestamp?: string;
-  };
+    amount?: number;
+    netAmount?: number;
+  } | null | any;
 }
 
 

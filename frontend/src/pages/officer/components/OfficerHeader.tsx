@@ -20,8 +20,10 @@ export interface AlertItem {
   read: boolean;
 }
 
+import { Centre, User } from '@shared/types';
+
 interface OfficerHeaderProps {
-  centres: any[];
+  centres: Centre[];
   selectedCentre: string;
   setSelectedCentre: (id: string) => void;
   isQueuePaused: boolean;
@@ -33,7 +35,7 @@ interface OfficerHeaderProps {
   showAlertsDropdown: boolean;
   setShowAlertsDropdown: React.Dispatch<React.SetStateAction<boolean>>;
   onMarkAlertRead: (id: string) => void;
-  user: any;
+  user: User | null;
   refreshing: boolean;
   onRefresh: () => void;
   logout: () => void;

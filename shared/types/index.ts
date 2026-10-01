@@ -64,9 +64,10 @@ export interface User {
   phone: string;
   password?: string;
   role: UserRole;
+  farmerId?: string;
   aadhaar?: string;
-  language: 'en' | 'hi';
-  createdAt: string;
+  language?: 'en' | 'hi' | string;
+  createdAt?: string;
 }
 
 export interface Farmer extends User {
@@ -78,9 +79,12 @@ export interface Farmer extends User {
   crops: ProduceType[];
   role: UserRole.FARMER;
   bankAccount?: string;
+  maskedBankAccount?: string;
   ifsc?: string;
   bankName?: string;
   bankVerificationStatus?: string;
+  activeToken?: any;
+  activeProcurement?: any;
 }
 
 export interface Centre {
@@ -120,6 +124,10 @@ export interface Token {
   queuePosition: number;
   estimatedTime: string;
   createdAt: string;
+  centreName?: string;
+  slotDate?: string;
+  date?: string;
+  slotTime?: string;
 }
 
 export interface Produce {
@@ -168,6 +176,9 @@ export interface Procurement {
   calculatedGrossAmount?: number;
   calculatedDeductions?: number;
   calculatedNetAmount?: number;
+  netQuantity?: number;
+  finalPayableAmount?: number;
+  receiptNumber?: string;
   timeline?: ProcurementTimelineEvent[];
 }
 
@@ -203,6 +214,7 @@ export interface Payment {
   grossAmount: number;
   deductions: number;
   netAmount: number;
+  amount?: number;
   status: PaymentStatus;
   paymentMethod?: string;
   transactionId?: string;
@@ -374,4 +386,129 @@ export interface SettlementData {
   hourlyFlow: { hour: string; count: number }[];
   dailyVolume: { day: string; quantity: number }[];
 }
+
+export interface CurrentFarmerData {
+  active: boolean;
+  message?: string;
+  procurement?: Procurement;
+  token?: Token;
+  farmer?: Farmer;
+  produce?: Produce | null;
+  weighing?: Weighing | null;
+  qualityCheck?: QualityCheck | null;
+  quality?: QualityCheck | null;
+  payment?: Payment | null;
+}
+
+export interface QualityFormData {
+  crop: string;
+  moistureContent: string;
+  foreignMatter: string;
+  damagedGrains: string;
+  grade: string;
+  qualityResult: 'ACCEPTED' | 'REJECTED' | 'NEEDS_REVIEW';
+  remarks: string;
+}
+
+export interface CalculationData {
+  procurementId?: string;
+  netQuantity: number;
+  baseRate: number;
+  qualityAdjustment: number;
+  finalRate: number;
+  grossAmount: number;
+  statutoryDeductions?: number;
+  deductions?: number;
+  finalPayableAmount: number;
+  status?: ProcurementStatus | string;
+}
+
+export interface PaymentReviewData {
+  procurementId: string;
+  farmerId: string;
+  farmerName: string;
+  crop: string;
+  netQuantity: number;
+  quantity?: number;
+  tokenNumber?: string;
+  transactionId?: string;
+  grossAmount: number;
+  deductions: number;
+  finalPayableAmount: number;
+  netAmount: number;
+  maskedBankAccount: string;
+  bankName: string;
+  ifsc: string;
+  bankVerificationStatus: string;
+  paymentMethod: string;
+  procurement?: Procurement;
+  farmer?: Partial<Farmer> & { maskedBankAccount?: string; farmerId?: string; name?: string; bankName?: string; ifsc?: string };
+  weighing?: Weighing | null;
+  qualityCheck?: QualityCheck | null;
+  payment?: Payment | null;
+}
+
+export interface ReceiptData {
+  receiptNumber: string;
+  issuedAt: string;
+  receiptDate?: string;
+  officerName?: string;
+  procurement: Procurement;
+  farmer: Farmer;
+  centre: Centre;
+  token: Token;
+  weighing?: Weighing | null;
+  qualityCheck?: QualityCheck | null;
+  payment?: Payment | null;
+}
+
+export interface SettlementSummary {
+  centreId: string;
+  disbursedTotal: number;
+  pendingTotal: number;
+  transactionCount: number;
+  transactions: Payment[];
+  centreName?: string;
+  date?: string;
+  farmersServed?: number;
+  lotsCompleted?: number;
+  lotsRejected?: number;
+  totalQuantity?: number;
+  grossProcurementValue?: number;
+  totalDeductions?: number;
+  netDisbursed?: number;
+  paymentsCompleted?: number;
+  paymentsProcessing?: number;
+  paymentsPending?: number;
+  paymentsFailed?: number;
+  hourlyFlow?: { hour: string; count: number }[];
+  dailyVolume?: { day: string; quantity: number }[];
+}
+
+export interface OfficerStats {
+  centreId?: string;
+  farmersServedToday: number;
+  waitingFarmers: number;
+  completedFarmers: number;
+  completedLots?: number;
+  rejectedLots?: number;
+  totalQuantityProcured: number;
+  totalProcurementValue: number;
+  paymentsCompleted: number;
+  paymentsPending: number;
+  failedPayments?: number;
+  avgWaitTime?: number;
+  avgServiceTime?: number;
+  isQueuePaused?: boolean;
+  procurementsToday?: number;
+  pendingQueue?: number;
+  avgWaitMinutes?: number;
+  totalProcuredKg?: number;
+  activeScalesCount?: number;
+  unreadAlertsCount?: number;
+}
+
+export * from './api';
+
+
 

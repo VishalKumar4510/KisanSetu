@@ -1,8 +1,9 @@
 import React from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ProcurementTimelineEvent } from '@shared/types';
 
 interface AuditTimelineProps {
-  timeline: any[];
+  timeline: ProcurementTimelineEvent[];
   showFullTimeline: boolean;
   setShowFullTimeline: React.Dispatch<React.SetStateAction<boolean>>;
 }

@@ -1,9 +1,10 @@
 import React from 'react';
 import { OfficerStats } from './MetricsPanel';
+import { SettlementData, SettlementSummary } from '@shared/types';
 
 interface AnalyticsPanelProps {
   stats: OfficerStats | null;
-  settlementData: any;
+  settlementData: SettlementData | SettlementSummary | null;
 }
 
 export const AnalyticsPanel: React.FC<AnalyticsPanelProps> = ({

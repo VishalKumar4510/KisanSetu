@@ -51,13 +51,17 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (
+      const isAllowed =
+        config.parsedAllowedOrigins.includes('*') ||
         config.parsedAllowedOrigins.includes(origin) ||
-        (config.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin))
-      ) {
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.onrender.com') ||
+        (config.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin));
+
+      if (isAllowed) {
         return callback(null, true);
       }
-      return callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
+      return callback(null, false);
     },
     credentials: true,
   })
